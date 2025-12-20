@@ -1,0 +1,6 @@
+{
+    "name": "Smartify",
+    "content_in_root": false,
+    "homeassistant": "2024.5.0",
+    "render_readme": true
+}
