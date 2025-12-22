@@ -1,0 +1,12 @@
+{
+  "domain": "smartify",
+  "name": "Smartify",
+  "codeowners": [
+    "@lymanepp"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/lymanepp/ha-smartify",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/lymanepp/ha-smartify/issues",
+  "version": "0.0.1"
+}

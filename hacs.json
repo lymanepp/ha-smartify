@@ -1,0 +1,7 @@
+{
+    "name": "Smartify",
+    "render_readme": true,
+    "homeassistant": "2024.11.0",
+    "filename": "smartify.zip",
+    "zip_release": true
+}
