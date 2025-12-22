@@ -1,7 +1,7 @@
 {
     "name": "lymanepp/smartify",
     "image": "mcr.microsoft.com/vscode/devcontainers/python:3.13-bullseye",
-    "postCreateCommand": "scripts/setup",
+    "postCreateCommand": "./.devcontainer/postcreatecommand.sh",
     "forwardPorts": [
         8123
     ],

@@ -1,5 +1,18 @@
 # https://www.home-assistant.io/integrations/default_config/
-default_config:
+#default_config:
+
+homeassistant:
+  name: Dev
+
+http:
+
+api:
+websocket_api:
+
+# Add only what you need while developing
+# (frontend/lovelace optional)
+frontend:
+lovelace:
 
 # https://www.home-assistant.io/integrations/logger/
 logger:
@@ -123,3 +136,91 @@ sensor:
     initial_value: 50.0
     unit_of_measurement: "%"
     persistent: true
+
+  - platform: virtual
+    name: Living Room Temperature
+    class: temperature
+    initial_availability: true
+    initial_value: 77.0
+    unit_of_measurement: "°F"
+    persistent: true
+
+  - platform: virtual
+    name: Living Room Humidity
+    class: humidity
+    initial_availability: true
+    initial_value: 50.0
+    unit_of_measurement: "%"
+    persistent: true
+
+
+smartify:
+  controllers:
+
+    # =========================================================================
+    # OCCUPANCY CONTROLLERS
+    # =========================================================================
+
+    - type: occupancy
+      sensor_name: "Bathroom Occupancy"
+      motion_sensors:
+        - binary_sensor.virtual_bathroom_motion
+      motion_off_minutes: 10
+      required_on_entities:
+        - binary_sensor.virtual_anyone_home
+
+    - type: occupancy
+      sensor_name: "Office Occupancy"
+      motion_sensors:
+        - binary_sensor.virtual_office_motion
+      motion_off_minutes: 10
+      other_entities:
+        - binary_sensor.virtual_office_monitor_on
+      required_on_entities:
+        - binary_sensor.virtual_anyone_home
+
+    # =========================================================================
+    # CEILING FAN CONTROLLERS
+    # =========================================================================
+
+    - type: ceiling_fan
+      controlled_entity: fan.virtual_office_fan
+      temp_sensor: sensor.virtual_office_temperature
+      humidity_sensor: sensor.virtual_office_humidity
+      ssi_min: 81.0
+      ssi_max: 91.0
+      speed_min: 50.0
+      speed_max: 100.0
+      manual_control_minutes: 60
+      required_on_entities:
+        - binary_sensor.office_occupancy
+
+    # =========================================================================
+    # EXHAUST FAN CONTROLLERS
+    # =========================================================================
+
+    - type: exhaust_fan
+      controlled_entity: fan.virtual_bathroom_fan
+      temp_sensor: sensor.virtual_bathroom_temperature
+      humidity_sensor: sensor.virtual_bathroom_humidity
+      reference_temp_sensor: sensor.virtual_living_room_temperature
+      reference_humidity_sensor: sensor.virtual_living_room_humidity
+      rising_threshold: 2.0
+      falling_threshold: 0.5
+      manual_control_minutes: 15
+
+    # =========================================================================
+    # LIGHT CONTROLLERS
+    # =========================================================================
+
+    - type: light
+      controlled_entity: light.virtual_office_light
+      trigger_entity: binary_sensor.office_occupancy
+      auto_off_minutes: 5
+      manual_control_minutes: 1
+
+    - type: light
+      controlled_entity: light.virtual_bathroom_light
+      trigger_entity: binary_sensor.bathroom_occupancy
+      auto_off_minutes: 5
+      manual_control_minutes: 1
