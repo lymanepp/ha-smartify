@@ -23,6 +23,7 @@ logger:
 
 # https://github.com/twrecked/hass-virtual
 virtual:
+  yaml_config: True
 
 light:
   - platform: virtual
