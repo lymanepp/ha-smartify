@@ -8,4 +8,4 @@ pytest-cov==6.0.0
 ruff==0.14.10
 
 # https://github.com/MatthewFlamm/pytest-homeassistant-custom-component/releases
-pytest-homeassistant-custom-component==0.13.190
+pytest-homeassistant-custom-component==0.13.316
