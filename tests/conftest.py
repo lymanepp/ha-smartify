@@ -29,7 +29,6 @@ def suppress_entity_sw_version(monkeypatch):
         return None
 
     monkeypatch.setattr(
-        "custom_components.smartify.entity."
-        "SmartifyEntity._set_sw_version",
+        "custom_components.smartify.entity.SmartifyEntity._set_sw_version",
         _noop,
     )

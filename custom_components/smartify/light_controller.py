@@ -15,6 +15,7 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant, State
+from homeassistant.helpers.template import is_number
 
 from .const import _LOGGER, ON_OFF_STATES, Config
 from .smartify_controller import SmartifyController
@@ -52,6 +53,7 @@ class LightController(SmartifyController):
         self.trigger_entity: str | None = self.data.get(Config.TRIGGER_ENTITY)
         self.illuminance_sensor: str | None = self.data.get(Config.ILLUMINANCE_SENSOR)
         self.illuminance_cutoff: int | None = self.data.get(Config.ILLUMINANCE_CUTOFF)
+        self._cached_illuminance: float | None = None
 
         required_on_entities: list[str] = self.data.get(Config.REQUIRED_ON_ENTITIES, [])
         required_off_entities: list[str] = self.data.get(
@@ -79,8 +81,10 @@ class LightController(SmartifyController):
 
     async def on_state_change(self, state: State) -> None:
         """Handle entity state changes from base."""
+
         if state.entity_id == self.controlled_entity:
             if state.state in ON_OFF_STATES:
+                self._cached_illuminance = None
                 await self.fire_event(
                     MyEvent.ON if state.state == STATE_ON else MyEvent.OFF
                 )
@@ -93,6 +97,11 @@ class LightController(SmartifyController):
                     else MyEvent.TRIGGER_OFF
                 )
 
+        elif state.entity_id == self.illuminance_sensor:
+            self._cached_illuminance = (
+                float(state.state) if is_number(state.state) else None
+            )
+
     async def on_timer_expired(self) -> None:
         """Handle timer expiration from base."""
         await self.fire_event(MyEvent.TIMER)
@@ -102,17 +111,11 @@ class LightController(SmartifyController):
 
         def acceptable_illuminance():
             if self.illuminance_sensor and self.illuminance_cutoff is not None:
-                state = self.hass.states.get(self.illuminance_sensor)
-                if state and state.state not in (None, "unknown", "unavailable"):
-                    try:
-                        return float(state.state) <= self.illuminance_cutoff
-                    except (TypeError, ValueError):
-                        _LOGGER.warning(
-                            "%s; invalid illuminance sensor value '%s'",
-                            self.name,
-                            state.state,
-                        )
-                        return False
+                return (
+                    self._cached_illuminance is None
+                    or self._cached_illuminance <= self.illuminance_cutoff
+                )
+
             return True
 
         def have_required():
