@@ -10,7 +10,7 @@ async def test_duplicate_reload_replaces_old_controller(
     hass: HomeAssistant,
 ):
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={},
     )
 
@@ -24,9 +24,7 @@ async def test_duplicate_reload_replaces_old_controller(
     new_controller.async_setup = AsyncMock()
     new_controller.async_unload = MagicMock()
 
-    with patch(
-        "custom_components.smart_controller._create_controller"
-    ) as mock_create:
+    with patch("custom_components.smartify._create_controller") as mock_create:
         mock_create.side_effect = [
             old_controller,
             new_controller,

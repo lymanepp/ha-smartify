@@ -4,7 +4,7 @@ from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
 )
 
-from custom_components.smart_controller.const import (
+from custom_components.smartify.const import (
     DOMAIN,
     Config,
     ControllerType,
@@ -20,9 +20,7 @@ async def test_user_flow_starts_at_menu(
         context={"source": "user"},
     )
 
-    assert result["type"] == (
-        data_entry_flow.FlowResultType.MENU
-    )
+    assert result["type"] == (data_entry_flow.FlowResultType.MENU)
 
     assert result["menu_options"]
 
@@ -98,8 +96,7 @@ async def test_existing_entry_does_not_break_flow(
         title="existing",
         unique_id="existing",
         data={
-            Config.CONTROLLER_TYPE:
-                ControllerType.LIGHT,
+            Config.CONTROLLER_TYPE: ControllerType.LIGHT,
         },
     )
 
@@ -222,9 +219,7 @@ async def test_repeated_menu_navigation(
             context={"source": "user"},
         )
 
-        assert result["type"] == (
-            data_entry_flow.FlowResultType.MENU
-        )
+        assert result["type"] == (data_entry_flow.FlowResultType.MENU)
 
 
 @pytest.mark.asyncio

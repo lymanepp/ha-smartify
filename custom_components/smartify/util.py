@@ -25,13 +25,7 @@ def absolute_humidity(temp: tuple[float, str], hum: float) -> float:
 
     t_c = TemperatureConverter.convert(*temp, UnitOfTemperature.CELSIUS)
 
-    return (
-        hum
-        * 6.112
-        * 2.1674
-        * e ** ((t_c * 17.67) / (t_c + 243.5))
-        / (t_c + 273.15)
-    )
+    return hum * 6.112 * 2.1674 * e ** ((t_c * 17.67) / (t_c + 243.5)) / (t_c + 273.15)
 
 
 def summer_simmer_index(

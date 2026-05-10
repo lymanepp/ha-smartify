@@ -29,11 +29,11 @@ from .const import DOMAIN, Config, ControllerType
 ErrorsType = MutableMapping[str, str]
 
 FAN_TYPE: Final = "fan_type"
-GITHUB_URL: Final = "https://github.com/lymanepp/ha-smart-controller"
+GITHUB_URL: Final = "https://github.com/lymanepp/ha-smartify"
 SSI_URL: Final = "http://www.summersimmer.com/home.htm"
 
 
-class SmartControllerConfigFlow(ConfigFlow, domain=DOMAIN):
+class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
     """Config flow for Light Controller."""
 
     VERSION = 1
@@ -295,10 +295,10 @@ class SmartControllerConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback  # type: ignore
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get the options flow for this handler."""
-        return SmartControllerOptionsFlow(config_entry)
+        return SmartifyOptionsFlow(config_entry)
 
 
-class SmartControllerOptionsFlow(OptionsFlow):  # type: ignore
+class SmartifyOptionsFlow(OptionsFlow):  # type: ignore
     """Handle options."""
 
     def __init__(self, config_entry: ConfigEntry):

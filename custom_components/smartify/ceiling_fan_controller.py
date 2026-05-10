@@ -16,7 +16,7 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import _LOGGER, ON_OFF_STATES, Config
-from .smart_controller import SmartController
+from .smartify_controller import SmartifyController
 from .util import extrapolate_value, float_with_unit, remove_empty, summer_simmer_index
 
 
@@ -39,7 +39,7 @@ class MyEvent(enum.StrEnum):
     REFRESH = "refresh"
 
 
-class CeilingFanController(SmartController):
+class CeilingFanController(SmartifyController):
     """Representation of a Ceiling Fan Controller."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:

@@ -1,12 +1,11 @@
-
 import pytest
 from homeassistant.core import Context, Event, HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smart_controller.smart_controller import SmartController
+from custom_components.smartify.smartify_controller import SmartifyController
 
 
-class DummyController(SmartController):
+class DummyController(SmartifyController):
     async def on_state_change(self, state):
         self.state_calls += 1
 
@@ -24,7 +23,7 @@ async def test_self_generated_context_ignored(
     controller = DummyController(
         hass,
         MockConfigEntry(
-            domain="smart_controller",
+            domain="smartify",
         ),
         "off",
     )
@@ -33,9 +32,7 @@ async def test_self_generated_context_ignored(
 
     context = Context()
 
-    controller._service_context_ids.add(
-        context.id
-    )
+    controller._service_context_ids.add(context.id)
 
     event = Event(
         "state_changed",

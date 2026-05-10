@@ -55,7 +55,7 @@ testpaths = ["tests"]
 addopts = "-vv --strict-markers"
 
 [tool.coverage.run]
-source = ["custom_components.smart_controller"]
+source = ["custom_components.smartify"]
 branch = true
 
 [tool.coverage.report]

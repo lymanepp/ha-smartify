@@ -10,7 +10,7 @@ async def test_async_setup_entry(
     hass: HomeAssistant,
 ):
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={},
     )
 
@@ -20,9 +20,7 @@ async def test_async_setup_entry(
     controller.async_setup = AsyncMock()
     controller.async_unload = MagicMock()
 
-    with patch(
-        "custom_components.smart_controller._create_controller"
-    ) as mock_create:
+    with patch("custom_components.smartify._create_controller") as mock_create:
         mock_create.return_value = controller
 
         result = await hass.config_entries.async_setup(
@@ -39,7 +37,7 @@ async def test_async_unload_entry(
     hass: HomeAssistant,
 ):
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={},
     )
 
@@ -49,9 +47,7 @@ async def test_async_unload_entry(
     controller.async_setup = AsyncMock()
     controller.async_unload = MagicMock()
 
-    with patch(
-        "custom_components.smart_controller._create_controller"
-    ) as mock_create:
+    with patch("custom_components.smartify._create_controller") as mock_create:
         mock_create.return_value = controller
 
         result = await hass.config_entries.async_setup(

@@ -11,7 +11,7 @@ from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant, State
 
 from .const import _LOGGER, ON_OFF_STATES, Config
-from .smart_controller import SmartController
+from .smartify_controller import SmartifyController
 from .util import remove_empty
 
 
@@ -36,7 +36,7 @@ class MyEvent(enum.StrEnum):
 ON_STATES: Final = {MyState.MOTION, MyState.OTHER, MyState.WASP_IN_BOX}
 
 
-class OccupancyController(SmartController):
+class OccupancyController(SmartifyController):
     """Representation of an Occupancy Controller."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:

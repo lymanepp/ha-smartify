@@ -1,4 +1,3 @@
-
 import pytest
 
 from homeassistant.core import HomeAssistant
@@ -6,12 +5,12 @@ from homeassistant.const import STATE_ON, STATE_OFF
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smart_controller.occupancy_controller import (
+from custom_components.smartify.occupancy_controller import (
     OccupancyController,
     MyState,
     MyEvent,
 )
-from custom_components.smart_controller.const import Config
+from custom_components.smartify.const import Config
 
 
 @pytest.mark.asyncio
@@ -38,7 +37,7 @@ async def test_closed_door_enters_wasp(hass: HomeAssistant):
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.DOOR_SENSORS: [
                 "binary_sensor.door",
@@ -61,7 +60,7 @@ async def test_required_entity_missing_prevents_occupancy(hass: HomeAssistant):
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.REQUIRED_ON_ENTITIES: [
                 "binary_sensor.required",

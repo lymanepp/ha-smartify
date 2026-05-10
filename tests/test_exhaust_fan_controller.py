@@ -5,8 +5,8 @@ from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smart_controller.const import Config
-from custom_components.smart_controller.exhaust_fan_controller import (
+from custom_components.smartify.const import Config
+from custom_components.smartify.exhaust_fan_controller import (
     ExhaustFanController,
 )
 
@@ -41,7 +41,7 @@ async def test_high_humidity_turns_fan_on(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "fan.bathroom",
             Config.TEMP_SENSOR: "sensor.temp",
@@ -62,9 +62,7 @@ async def test_high_humidity_turns_fan_on(
 
     await controller.async_setup(hass)
 
-    await controller.on_state_change(
-        hass.states.get("sensor.humidity")
-    )
+    await controller.on_state_change(hass.states.get("sensor.humidity"))
 
     controller.async_service_call.assert_called()
 
@@ -101,7 +99,7 @@ async def test_low_humidity_turns_fan_off(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "fan.bathroom",
             Config.TEMP_SENSOR: "sensor.temp",
@@ -122,9 +120,7 @@ async def test_low_humidity_turns_fan_off(
 
     await controller.async_setup(hass)
 
-    await controller.on_state_change(
-        hass.states.get("sensor.humidity")
-    )
+    await controller.on_state_change(hass.states.get("sensor.humidity"))
 
     controller.async_service_call.assert_called()
 
@@ -156,7 +152,7 @@ async def test_invalid_humidity_does_not_crash(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "fan.bathroom",
             Config.TEMP_SENSOR: "sensor.temp",
@@ -177,9 +173,7 @@ async def test_invalid_humidity_does_not_crash(
 
     await controller.async_setup(hass)
 
-    await controller.on_state_change(
-        hass.states.get("sensor.humidity")
-    )
+    await controller.on_state_change(hass.states.get("sensor.humidity"))
 
     controller.async_service_call.assert_not_called()
 

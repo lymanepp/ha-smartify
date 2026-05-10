@@ -1,12 +1,13 @@
-
-from custom_components.smart_controller.util import (
+from custom_components.smartify.util import (
     remove_empty,
     extrapolate_value,
 )
 
+
 def test_remove_empty_deduplicates():
     result = remove_empty(["a", None, "b", "a"])
     assert result == ["a", "b"]
+
 
 def test_extrapolate_value_midpoint():
     result = extrapolate_value(

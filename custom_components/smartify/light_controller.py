@@ -17,7 +17,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, State
 
 from .const import _LOGGER, ON_OFF_STATES, Config
-from .smart_controller import SmartController
+from .smartify_controller import SmartifyController
 from .util import remove_empty
 
 
@@ -41,7 +41,7 @@ class MyEvent(enum.StrEnum):
     TIMER = "timer"
 
 
-class LightController(SmartController):
+class LightController(SmartifyController):
     """Representation of a Light Controller."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
@@ -103,14 +103,9 @@ class LightController(SmartController):
         def acceptable_illuminance():
             if self.illuminance_sensor and self.illuminance_cutoff is not None:
                 state = self.hass.states.get(self.illuminance_sensor)
-                if (
-                    state
-                    and state.state not in (None, "unknown", "unavailable")
-                ):
+                if state and state.state not in (None, "unknown", "unavailable"):
                     try:
-                        return (
-                            float(state.state) <= self.illuminance_cutoff
-                        )
+                        return float(state.state) <= self.illuminance_cutoff
                     except (TypeError, ValueError):
                         _LOGGER.warning(
                             "%s; invalid illuminance sensor value '%s'",

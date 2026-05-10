@@ -5,8 +5,8 @@ from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smart_controller.const import Config
-from custom_components.smart_controller.light_controller import (
+from custom_components.smartify.const import Config
+from custom_components.smartify.light_controller import (
     LightController,
 )
 
@@ -26,7 +26,7 @@ async def test_required_on_entity_blocks_activation(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "light.test",
             Config.TRIGGER_ENTITY: "binary_sensor.motion",
@@ -45,11 +45,7 @@ async def test_required_on_entity_blocks_activation(
 
     await controller.async_setup(hass)
 
-    await controller.on_state_change(
-        hass.states.get(
-            "binary_sensor.motion"
-        )
-    )
+    await controller.on_state_change(hass.states.get("binary_sensor.motion"))
 
     controller.async_service_call.assert_not_called()
 
@@ -71,12 +67,11 @@ async def test_invalid_illuminance_does_not_crash(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "light.test",
             Config.TRIGGER_ENTITY: "binary_sensor.motion",
-            Config.ILLUMINANCE_SENSOR:
-                "sensor.lux",
+            Config.ILLUMINANCE_SENSOR: "sensor.lux",
             Config.ILLUMINANCE_CUTOFF: 10,
         },
     )
@@ -90,11 +85,7 @@ async def test_invalid_illuminance_does_not_crash(
 
     await controller.async_setup(hass)
 
-    await controller.on_state_change(
-        hass.states.get(
-            "binary_sensor.motion"
-        )
-    )
+    await controller.on_state_change(hass.states.get("binary_sensor.motion"))
 
     controller.async_service_call.assert_not_called()
 

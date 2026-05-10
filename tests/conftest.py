@@ -26,7 +26,6 @@ def auto_enable_custom_integrations(
 @pytest.fixture(autouse=True)
 def suppress_entity_sw_version_patch(monkeypatch):
     monkeypatch.setattr(
-        "custom_components.smart_controller.entity."
-        "SmartControllerEntity._set_sw_version",
+        "custom_components.smartify.entity.SmartifyEntity._set_sw_version",
         AsyncMock(),
     )

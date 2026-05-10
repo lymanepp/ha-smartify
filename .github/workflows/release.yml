@@ -21,15 +21,15 @@ jobs:
         shell: "bash"
         run: |
           yq -i -o json '.version="${{ github.event.release.tag_name }}"' \
-            "${{ github.workspace }}/custom_components/smart_controller/manifest.json"
+            "${{ github.workspace }}/custom_components/smartify/manifest.json"
 
       - name: "ZIP the integration directory"
         shell: "bash"
         run: |
-          cd "${{ github.workspace }}/custom_components/smart_controller"
-          zip smart_controller.zip -r ./
+          cd "${{ github.workspace }}/custom_components/smartify"
+          zip ha-smartify.zip -r ./
 
       - name: "Upload the ZIP file to the release"
         uses: softprops/action-gh-release@v2.1.0
         with:
-          files: ${{ github.workspace }}/custom_components/smart_controller/smart_controller.zip
+          files: ${{ github.workspace }}/custom_components/smartify/ha-smartify.zip

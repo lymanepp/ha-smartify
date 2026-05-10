@@ -11,8 +11,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, Config, ControllerType
-from .entity import SmartControllerEntity
-from .smart_controller import SmartController
+from .entity import SmartifyEntity
+from .smartify_controller import SmartifyController
 
 ENTITY_DESCRIPTIONS = [
     BinarySensorEntityDescription(
@@ -32,7 +32,7 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            SmartControllerBinarySensor(
+            SmartifyBinarySensor(
                 controller=controller,
                 entity_description=entity_description,
                 name=config_entry.title,
@@ -43,12 +43,12 @@ async def async_setup_entry(
     )
 
 
-class SmartControllerBinarySensor(SmartControllerEntity, BinarySensorEntity):
-    """Smart Controller Binary Sensor class."""
+class SmartifyBinarySensor(SmartifyEntity, BinarySensorEntity):
+    """Smartify Binary Sensor class."""
 
     def __init__(
         self,
-        controller: SmartController,
+        controller: SmartifyController,
         entity_description: BinarySensorEntityDescription,
         name: str,
     ) -> None:

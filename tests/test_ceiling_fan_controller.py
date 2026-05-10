@@ -4,10 +4,8 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smart_controller.ceiling_fan_controller import (
-    CeilingFanController,
-)
-from custom_components.smart_controller.const import Config
+from custom_components.smartify.ceiling_fan_controller import CeilingFanController
+from custom_components.smartify.const import Config
 
 
 @pytest.mark.asyncio
@@ -33,7 +31,7 @@ async def test_high_ssi_increases_speed(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "fan.family_room",
             Config.TEMP_SENSOR: "sensor.temperature",
@@ -54,9 +52,7 @@ async def test_high_ssi_increases_speed(
 
     await controller.async_setup(hass)
 
-    await controller.on_state_change(
-        hass.states.get("sensor.temperature")
-    )
+    await controller.on_state_change(hass.states.get("sensor.temperature"))
 
     controller.async_service_call.assert_called()
 
@@ -86,7 +82,7 @@ async def test_attribute_only_percentage_change_processed(
     )
 
     entry = MockConfigEntry(
-        domain="smart_controller",
+        domain="smartify",
         data={
             Config.CONTROLLED_ENTITY: "fan.family_room",
             Config.TEMP_SENSOR: "sensor.temperature",

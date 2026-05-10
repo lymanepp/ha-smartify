@@ -1,1 +1,1 @@
-# ha-smart-controller
+# ha-smartify

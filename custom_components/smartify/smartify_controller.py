@@ -20,7 +20,7 @@ from homeassistant.util import dt
 from .const import _LOGGER, IGNORE_STATES, Config
 
 
-class SmartController(ABC):
+class SmartifyController(ABC):
     """Base class for controllers."""
 
     def __init__(

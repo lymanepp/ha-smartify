@@ -4,10 +4,10 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smart_controller.smart_controller import SmartController
+from custom_components.smartify.smartify_controller import SmartifyController
 
 
-class DummyController(SmartController):
+class DummyController(SmartifyController):
     async def on_state_change(self, state):
         pass
 
@@ -25,7 +25,7 @@ async def test_set_timer_creates_timer(
     controller = DummyController(
         hass,
         MockConfigEntry(
-            domain="smart_controller",
+            domain="smartify",
         ),
         "off",
     )
@@ -46,7 +46,7 @@ async def test_set_timer_replaces_existing_timer(
     controller = DummyController(
         hass,
         MockConfigEntry(
-            domain="smart_controller",
+            domain="smartify",
         ),
         "off",
     )
@@ -74,7 +74,7 @@ async def test_set_timer_none_cancels_timer(
     controller = DummyController(
         hass,
         MockConfigEntry(
-            domain="smart_controller",
+            domain="smartify",
         ),
         "off",
     )
@@ -97,7 +97,7 @@ async def test_async_unload_cleans_up_timer(
     controller = DummyController(
         hass,
         MockConfigEntry(
-            domain="smart_controller",
+            domain="smartify",
         ),
         "off",
     )
