@@ -28,6 +28,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     if (controller := _create_controller(hass, config_entry)) is None:
         return False
 
+    if old_controller := domain_data.pop(config_entry.entry_id, None):
+        old_controller.async_unload()
+
     domain_data[config_entry.entry_id] = controller
 
     async def start_controller(_: Event | None = None):
@@ -57,8 +60,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
 async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Reload config entry."""
-    await async_unload_entry(hass, config_entry)
-    await async_setup_entry(hass, config_entry)
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
 
 # #### Internal functions ####

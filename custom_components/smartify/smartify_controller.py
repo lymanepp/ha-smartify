@@ -89,6 +89,13 @@ class SmartifyController(ABC):
 
             await self._on_state_change(old_state, new_state)
 
+        _LOGGER.debug(
+            "%s; registering state listener controller=%s tracked=%s",
+            self.name,
+            id(self),
+            self.tracked_entity_ids,
+        )
+
         self._unsubscribers.append(
             async_track_state_change_event(
                 hass,
@@ -102,6 +109,14 @@ class SmartifyController(ABC):
 
     def async_unload(self) -> None:
         """Call when controller is being unloaded."""
+
+        _LOGGER.debug(
+            "%s; unloading controller=%s unsubscribers=%s listeners=%s",
+            self.name,
+            id(self),
+            len(self._unsubscribers),
+            len(self._listeners),
+        )
 
         self._shutting_down = True
 
@@ -117,6 +132,12 @@ class SmartifyController(ABC):
                     "%s; failed while unloading callback",
                     self.name,
                 )
+
+        _LOGGER.debug(
+            "%s; unload complete controller=%s",
+            self.name,
+            id(self),
+        )
 
         self._listeners.clear()
         self._service_context_ids.clear()

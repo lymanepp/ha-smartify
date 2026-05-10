@@ -91,6 +91,14 @@ class CeilingFanController(SmartifyController):
     async def async_setup(self, hass) -> None:
         """Additional setup unique to this controller."""
         await super().async_setup(hass)
+
+        _LOGGER.debug(
+            "%s; registering state listener controller=%s tracked=%s",
+            self.name,
+            id(self),
+            self.tracked_entity_ids,
+        )
+
         self._unsubscribers.append(
             async_track_time_interval(hass, self._on_poll, timedelta(seconds=60))
         )
