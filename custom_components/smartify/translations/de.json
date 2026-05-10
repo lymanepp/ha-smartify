@@ -1,0 +1,170 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Wählen Sie aus, was gesteuert werden soll",
+        "menu_options": {
+          "ceiling_fan": "Deckenventilator",
+          "exhaust_fan": "Abluftventilator",
+          "light": "Licht",
+          "occupancy": "Belegung"
+        }
+      },
+      "ceiling_fan": {
+        "title": "Wählen Sie einen Deckenventilator",
+        "description": "Wählen Sie einen Deckenventilator zur Steuerung aus.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "controlled_entity": "Deckenventilator"
+        }
+      },
+      "ceiling_fan_options": {
+        "title": "{controlled_entity} konfigurieren",
+        "description": "Automatisieren Sie einen Deckenventilator für mehr Komfort mithilfe des Summer Simmer Index (SSI) als Komfortwert. {ssi_url}\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
+          "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
+          "ssi_min": "Der Ventilator startet, wenn der SSI über folgendem Wert liegt:",
+          "ssi_max": "Die Ventilatorgeschwindigkeit wird maximal sein, wenn der SSI über folgendem Wert liegt:",
+          "speed_min": "Minimale Ventilatorgeschwindigkeit:",
+          "speed_max": "Maximale Ventilatorgeschwindigkeit:",
+          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
+          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):",
+          "manual_control_minutes": "Manuelle Steuerung (optional):"
+        }
+      },
+      "exhaust_fan": {
+        "title": "Wählen Sie einen Abluftventilator",
+        "description": "Wählen Sie einen Abluftventilator zur Steuerung aus.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "controlled_entity": "Abluftventilator"
+        }
+      },
+      "exhaust_fan_options": {
+        "title": "{controlled_entity} konfigurieren",
+        "description": "Automatisieren Sie einen Abluftventilator zur Steuerung der Luftfeuchtigkeit.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
+          "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
+          "reference_temp_sensor": "Temperatursensor außerhalb des Raums:",
+          "reference_humidity_sensor": "Luftfeuchtigkeitssensor außerhalb des Raums:",
+          "rising_threshold": "Steigender Schwellenwert:",
+          "falling_threshold": "Fallender Schwellenwert:",
+          "manual_control_minutes": "Manuelle Steuerung (optional):"
+        }
+      },
+      "light": {
+        "title": "Wählen Sie ein Licht",
+        "description": "Wählen Sie ein Licht zur Steuerung aus.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "controlled_entity": "Licht-Entität"
+        }
+      },
+      "light_options": {
+        "title": "{controlled_entity} konfigurieren",
+        "description": "Automatisieren Sie ein Licht basierend auf Beleuchtungsstärke und erforderlichen Zuständen. Alles ist optional.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "brightness_pct": "Helligkeit:",
+          "trigger_entity": "Auslösende Entität (optional):",
+          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
+          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
+          "auto_off_minutes": "Automatisches Ausschalten (optional):",
+          "illuminance_sensor": "Beleuchtungssensor (optional):",
+          "illuminance_cutoff": "Beleuchtungsgrenze (optional):",
+          "manual_control_minutes": "Manuelle Ausschaltzeit (optional):"
+        }
+      },
+      "occupancy": {
+        "title": "Belegungssensor konfigurieren",
+        "description": "Erstellen Sie einen Belegungssensor basierend auf Bewegungssensoren, Türsensoren und anderen Entitäten.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "sensor_name": "Name des Belegungssensors:",
+          "motion_sensors": "Belegung wird für die angegebenen Minuten erkannt, wenn einer dieser Sensoren Bewegung erkennt (optional):",
+          "motion_off_minutes": "Ausschalten nach (optional):",
+          "other_entities": "Belegung wird erkannt, wenn einer dieser Sensoren auf 'Ein' steht (optional):",
+          "door_sensors": "Belegung wird unbegrenzt erkannt, wenn Bewegung in einem Raum erkannt wird und alle Türen geschlossen bleiben – auch nachdem die Bewegung aufgehört hat. Türsensoren sollten nur hinzugefügt werden, wenn alle Zugangspunkte im Bereich Sensoren haben. Türsensoren müssen schnell melden, cloudbasierte Sensoren sollten vermieden werden (optional):",
+          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
+          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):"
+        }
+      }
+    },
+    "error": {
+      "door_needs_motion": "Türsensoren erfordern angegebene Bewegungssensoren.",
+      "duplicate_name": "Eine Integration mit demselben Namen existiert bereits.",
+      "motion_needs_minutes": "Bewegungssensoren erfordern die Angabe von 'Ausschalten nach'.",
+      "occupancy_and_auto_off": "Belegungssensor und automatisches Ausschalten können nicht zusammen verwendet werden.",
+      "occupancy_needs_trigger": "Bewegungssensoren und/oder andere Entitäten müssen angegeben werden.",
+      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich."
+    },
+    "abort": {
+      "nothing_to_control": "Keine steuerbaren Entitäten verfügbar"
+    }
+  },
+  "options": {
+    "step": {
+      "ceiling_fan": {
+        "title": "{controlled_entity} konfigurieren",
+        "description": "Automatisieren Sie einen Deckenventilator für mehr Komfort mithilfe des Summer Simmer Index (SSI) als Komfortwert. {ssi_url}\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
+          "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
+          "ssi_min": "Der Ventilator startet, wenn der SSI über folgendem Wert liegt:",
+          "ssi_max": "Die Ventilatorgeschwindigkeit wird maximal sein, wenn der SSI über folgendem Wert liegt:",
+          "speed_min": "Minimale Ventilatorgeschwindigkeit:",
+          "speed_max": "Maximale Ventilatorgeschwindigkeit:",
+          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
+          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):",
+          "manual_control_minutes": "Manuelle Steuerung (optional):"
+        }
+      },
+      "exhaust_fan": {
+        "title": "{controlled_entity} konfigurieren",
+        "description": "Automatisieren Sie einen Abluftventilator zur Steuerung der Luftfeuchtigkeit.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
+          "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
+          "reference_temp_sensor": "Temperatursensor außerhalb des Raums:",
+          "reference_humidity_sensor": "Luftfeuchtigkeitssensor außerhalb des Raums:",
+          "rising_threshold": "Steigender Schwellenwert:",
+          "falling_threshold": "Fallender Schwellenwert:",
+          "manual_control_minutes": "Manuelle Steuerung (optional):"
+        }
+      },
+      "light": {
+        "title": "{controlled_entity} konfigurieren",
+        "description": "Automatisieren Sie ein Licht basierend auf Beleuchtungsstärke und erforderlichen Zuständen. Alles ist optional.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "brightness_pct": "Helligkeit:",
+          "trigger_entity": "Auslösende Entität (optional):",
+          "illuminance_sensor": "Beleuchtungssensor (optional):",
+          "illuminance_cutoff": "Beleuchtungsgrenze (optional):",
+          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
+          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
+          "auto_off_minutes": "Automatisches Ausschalten (optional):",
+          "manual_control_minutes": "Manuelle Ausschaltzeit (optional):"
+        }
+      },
+      "occupancy": {
+        "title": "Belegungssensor konfigurieren",
+        "description": "Erstellen Sie einen Belegungssensor basierend auf Bewegungssensoren, Türsensoren und anderen Entitäten.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "data": {
+          "sensor_name": "Name des Belegungssensors:",
+          "motion_sensors": "Belegung wird für die angegebenen Minuten erkannt, wenn einer dieser Sensoren Bewegung erkennt (optional):",
+          "motion_off_minutes": "Ausschalten nach (optional):",
+          "other_entities": "Belegung wird erkannt, wenn einer dieser Sensoren auf 'Ein' steht (optional):",
+          "door_sensors": "Belegung wird unbegrenzt erkannt, wenn Bewegung in einem Raum erkannt wird und alle Türen geschlossen bleiben – auch nachdem die Bewegung aufgehört hat. Türsensoren sollten nur hinzugefügt werden, wenn alle Zugangspunkte im Bereich Sensoren haben. Türsensoren müssen schnell melden, cloudbasierte Sensoren sollten vermieden werden (optional):",
+          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
+          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):"
+        }
+      }
+    },
+    "error": {
+      "duplicate_name": "Eine Integration mit demselben Namen existiert bereits.",
+      "occupancy_and_auto_off": "Belegungssensor und automatisches Ausschalten können nicht zusammen verwendet werden.",
+      "door_needs_motion": "Türsensoren erfordern angegebene Bewegungssensoren.",
+      "motion_needs_minutes": "Bewegungssensoren erfordern die Angabe von 'Ausschalten nach'.",
+      "occupancy_needs_trigger": "Bewegungssensoren und/oder andere Entitäten müssen angegeben werden.",
+      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich."
+    },
+    "abort": {}
+  }
+}

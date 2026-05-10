@@ -1,0 +1,170 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choisissez quoi contrôler",
+        "menu_options": {
+          "ceiling_fan": "Ventilateur de plafond",
+          "exhaust_fan": "Ventilateur d'extraction",
+          "light": "Lumière",
+          "occupancy": "Occupation"
+        }
+      },
+      "ceiling_fan": {
+        "title": "Choisissez un ventilateur de plafond",
+        "description": "Choisissez un ventilateur de plafond à contrôler.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "controlled_entity": "Ventilateur de plafond"
+        }
+      },
+      "ceiling_fan_options": {
+        "title": "Configurer {controlled_entity}",
+        "description": "Automatisez un ventilateur de plafond pour le confort en utilisant l'indice Summer Simmer (SSI) comme niveau de confort. {ssi_url}\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
+          "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
+          "ssi_min": "Le ventilateur démarrera lorsque le SSI dépassera :",
+          "ssi_max": "La vitesse du ventilateur sera maximale lorsque le SSI dépassera :",
+          "speed_min": "Vitesse minimale du ventilateur :",
+          "speed_max": "Vitesse maximale du ventilateur :",
+          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
+          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :",
+          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+        }
+      },
+      "exhaust_fan": {
+        "title": "Choisissez un ventilateur d'extraction",
+        "description": "Choisissez un ventilateur d'extraction à contrôler.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "controlled_entity": "Ventilateur d'extraction"
+        }
+      },
+      "exhaust_fan_options": {
+        "title": "Configurer {controlled_entity}",
+        "description": "Automatisez un ventilateur d'extraction pour contrôler l'humidité.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
+          "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
+          "reference_temp_sensor": "Capteur de température à l'extérieur de la pièce :",
+          "reference_humidity_sensor": "Capteur d'humidité à l'extérieur de la pièce :",
+          "rising_threshold": "Seuil de montée :",
+          "falling_threshold": "Seuil de descente :",
+          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+        }
+      },
+      "light": {
+        "title": "Choisissez une lumière",
+        "description": "Choisissez une lumière à contrôler.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "controlled_entity": "Entité lumière"
+        }
+      },
+      "light_options": {
+        "title": "Configurer {controlled_entity}",
+        "description": "Automatisez une lumière selon l'éclairement et les états requis. Tout est optionnel.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "brightness_pct": "Luminosité :",
+          "trigger_entity": "Entité déclencheuse (optionnel) :",
+          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
+          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
+          "auto_off_minutes": "Arrêt automatique (optionnel) :",
+          "illuminance_sensor": "Capteur de luminosité (optionnel) :",
+          "illuminance_cutoff": "Seuil de luminosité (optionnel) :",
+          "manual_control_minutes": "Temps d'arrêt manuel (optionnel) :"
+        }
+      },
+      "occupancy": {
+        "title": "Configurer le capteur d'occupation",
+        "description": "Créez un capteur d'occupation basé sur des détecteurs de mouvement, des capteurs de porte et d'autres entités.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "sensor_name": "Nom du capteur d'occupation :",
+          "motion_sensors": "L'occupation sera détectée pendant les minutes spécifiées lorsqu'un mouvement est détecté par l'un de ces capteurs (optionnel) :",
+          "motion_off_minutes": "Éteindre après (optionnel) :",
+          "other_entities": "L'occupation sera détectée si l'un de ces capteurs est sur 'activé' (optionnel) :",
+          "door_sensors": "L'occupation sera détectée indéfiniment lorsqu'un mouvement est détecté dans une pièce tant que toutes les portes restent fermées, même après l'arrêt du mouvement. Ajoutez des capteurs de porte uniquement lorsque tous les points d'accès de la zone disposent de capteurs. Les capteurs de porte doivent répondre rapidement et les capteurs basés sur le cloud doivent être évités (optionnel) :",
+          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
+          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :"
+        }
+      }
+    },
+    "error": {
+      "door_needs_motion": "Les capteurs de porte nécessitent des détecteurs de mouvement.",
+      "duplicate_name": "Une intégration portant le même nom existe déjà.",
+      "motion_needs_minutes": "Les détecteurs de mouvement nécessitent que 'éteindre après' soit spécifié.",
+      "occupancy_and_auto_off": "Le capteur d'occupation et l'arrêt automatique ne peuvent pas être utilisés ensemble.",
+      "occupancy_needs_trigger": "Vous devez spécifier des détecteurs de mouvement et/ou d'autres entités.",
+      "off_minutes_required": "'Éteindre après quelques minutes' est requis."
+    },
+    "abort": {
+      "nothing_to_control": "Aucune entité disponible à contrôler"
+    }
+  },
+  "options": {
+    "step": {
+      "ceiling_fan": {
+        "title": "Configurer {controlled_entity}",
+        "description": "Automatisez un ventilateur de plafond pour le confort en utilisant l'indice Summer Simmer (SSI) comme niveau de confort. {ssi_url}\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
+          "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
+          "ssi_min": "Le ventilateur démarrera lorsque le SSI dépassera :",
+          "ssi_max": "La vitesse du ventilateur sera maximale lorsque le SSI dépassera :",
+          "speed_min": "Vitesse minimale du ventilateur :",
+          "speed_max": "Vitesse maximale du ventilateur :",
+          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
+          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :",
+          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+        }
+      },
+      "exhaust_fan": {
+        "title": "Configurer {controlled_entity}",
+        "description": "Automatisez un ventilateur d'extraction pour contrôler l'humidité.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
+          "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
+          "reference_temp_sensor": "Capteur de température à l'extérieur de la pièce :",
+          "reference_humidity_sensor": "Capteur d'humidité à l'extérieur de la pièce :",
+          "rising_threshold": "Seuil de montée :",
+          "falling_threshold": "Seuil de descente :",
+          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+        }
+      },
+      "light": {
+        "title": "Configurer {controlled_entity}",
+        "description": "Automatisez une lumière selon l'éclairement et les états requis. Tout est optionnel.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "brightness_pct": "Luminosité :",
+          "trigger_entity": "Entité déclencheuse (optionnel) :",
+          "illuminance_sensor": "Capteur de luminosité (optionnel) :",
+          "illuminance_cutoff": "Seuil de luminosité (optionnel) :",
+          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
+          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
+          "auto_off_minutes": "Arrêt automatique (optionnel) :",
+          "manual_control_minutes": "Temps d'arrêt manuel (optionnel) :"
+        }
+      },
+      "occupancy": {
+        "title": "Configurer le capteur d'occupation",
+        "description": "Créez un capteur d'occupation basé sur des détecteurs de mouvement, des capteurs de porte et d'autres entités.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "data": {
+          "sensor_name": "Nom du capteur d'occupation :",
+          "motion_sensors": "L'occupation sera détectée pendant les minutes spécifiées lorsqu'un mouvement est détecté par l'un de ces capteurs (optionnel) :",
+          "motion_off_minutes": "Éteindre après (optionnel) :",
+          "other_entities": "L'occupation sera détectée si l'un de ces capteurs est sur 'activé' (optionnel) :",
+          "door_sensors": "L'occupation sera détectée indéfiniment lorsqu'un mouvement est détecté dans une pièce tant que toutes les portes restent fermées, même après l'arrêt du mouvement. Ajoutez des capteurs de porte uniquement lorsque tous les points d'accès de la zone disposent de capteurs. Les capteurs de porte doivent répondre rapidement et les capteurs basés sur le cloud doivent être évités (optionnel) :",
+          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
+          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :"
+        }
+      }
+    },
+    "error": {
+      "duplicate_name": "Une intégration portant le même nom existe déjà.",
+      "occupancy_and_auto_off": "Le capteur d'occupation et l'arrêt automatique ne peuvent pas être utilisés ensemble.",
+      "door_needs_motion": "Les capteurs de porte nécessitent des détecteurs de mouvement.",
+      "motion_needs_minutes": "Les détecteurs de mouvement nécessitent que 'éteindre après' soit spécifié.",
+      "occupancy_needs_trigger": "Vous devez spécifier des détecteurs de mouvement et/ou d'autres entités.",
+      "off_minutes_required": "'Éteindre après quelques minutes' est requis."
+    },
+    "abort": {}
+  }
+}
