@@ -24,8 +24,12 @@ def auto_enable_custom_integrations(
 
 
 @pytest.fixture(autouse=True)
-def suppress_entity_sw_version_patch(monkeypatch):
+def suppress_entity_sw_version(monkeypatch):
+    def _noop(*args, **kwargs):
+        return None
+
     monkeypatch.setattr(
-        "custom_components.smartify.entity.SmartifyEntity._set_sw_version",
-        AsyncMock(),
+        "custom_components.smartify.entity."
+        "SmartifyEntity._set_sw_version",
+        _noop,
     )
