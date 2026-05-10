@@ -5,7 +5,7 @@ default_config:
 logger:
   default: info
   logs:
-    custom_components.smart_controller: debug
+    custom_components.smartify: debug
     custom_components.virtual: debug
 
 # https://github.com/twrecked/hass-virtual

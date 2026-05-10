@@ -9,13 +9,13 @@ from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.loader import async_get_custom_components
 
 from .const import DOMAIN, NAME
-from .smart_controller import SmartController
+from .smartify_controller import SmartifyController
 
 
-class SmartControllerEntity(Entity):
-    """SmartControllerEntity class."""
+class SmartifyEntity(Entity):
+    """SmartifyEntity class."""
 
-    def __init__(self, controller: SmartController) -> None:
+    def __init__(self, controller: SmartifyController) -> None:
         """Initialize."""
         unique_id = controller.config_entry.entry_id
         self.hass = controller.hass

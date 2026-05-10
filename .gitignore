@@ -19,3 +19,5 @@ config/*
 
 # development
 custom_components/virtual/*
+
+.devcontainer/devcontainer-lock.json

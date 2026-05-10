@@ -2,8 +2,8 @@ name: "Validate"
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron:  "0 0 * * *"
+#  schedule:
+#    - cron: "0 0 * * *"
   push:
     branches:
       - "main"
@@ -14,24 +14,75 @@ on:
 jobs:
   hassfest: # https://developers.home-assistant.io/blog/2020/04/16/hassfest
     name: "Hassfest Validation"
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
+
     steps:
-        - name: "Checkout the repository"
-          uses: "actions/checkout@v4.2.2"
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        - name: "Run hassfest validation"
-          uses: "home-assistant/actions/hassfest@master"
+      - name: Run hassfest validation
+        uses: home-assistant/actions/hassfest@master
 
-  hacs: # https://github.com/hacs/action
+  hacs:
     name: "HACS Validation"
-    runs-on: "ubuntu-latest"
-    steps:
-        - name: "Checkout the repository"
-          uses: "actions/checkout@v4.2.2"
+    runs-on: ubuntu-latest
 
-        - name: "Run HACS validation"
-          uses: "hacs/action@main"
-          with:
-            category: "integration"
-            # Remove this 'ignore' key when you have added brand images for your integration to https://github.com/home-assistant/brands
-            ignore: "brands"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  pytest:
+    name: "Pytest"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-test.txt
+
+      - name: Run pytest with coverage
+        run: |
+          pytest \
+            --cov=custom_components.smartify \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-report=html
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            htmlcov/
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          verbose: true

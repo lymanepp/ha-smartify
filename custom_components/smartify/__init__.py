@@ -1,7 +1,7 @@
 """Custom integration to add Smart Controller to Home Assistant.
 
 For more details about this integration, please refer to
-https://github.com/lymanepp/ha-smart-controller
+https://github.com/lymanepp/ha-smartify
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from .const import DOMAIN, Config, ControllerType
 from .exhaust_fan_controller import ExhaustFanController
 from .light_controller import LightController
 from .occupancy_controller import OccupancyController
-from .smart_controller import SmartController
+from .smartify_controller import SmartifyController
 
 PLATFORMS = [Platform.BINARY_SENSOR]
 
@@ -49,7 +49,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     if unloaded := await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
     ):
-        controller: SmartController = hass.data[DOMAIN].pop(config_entry.entry_id)
+        controller: SmartifyController = hass.data[DOMAIN].pop(config_entry.entry_id)
         controller.async_unload()
 
     return unloaded
@@ -66,7 +66,7 @@ async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
 def _create_controller(
     hass: HomeAssistant, config_entry: ConfigEntry
-) -> SmartController | None:
+) -> SmartifyController | None:
     type_ = config_entry.data[Config.CONTROLLER_TYPE]
     match type_:
         case ControllerType.CEILING_FAN:

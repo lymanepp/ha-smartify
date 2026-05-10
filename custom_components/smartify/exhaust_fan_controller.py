@@ -17,7 +17,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, State
 
 from .const import _LOGGER, ON_OFF_STATES, Config
-from .smart_controller import SmartController
+from .smartify_controller import SmartifyController
 from .util import absolute_humidity, float_with_unit, remove_empty
 
 
@@ -40,7 +40,7 @@ class MyEvent(enum.StrEnum):
     REFRESH = "refresh"
 
 
-class ExhaustFanController(SmartController):
+class ExhaustFanController(SmartifyController):
     """Representation of an Exhaust Fan Controller."""
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:

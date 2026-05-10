@@ -1,7 +1,7 @@
 {
-    "name": "lymanepp/smart_controller",
-    "image": "mcr.microsoft.com/vscode/devcontainers/python:3.12-bullseye",
-    "postCreateCommand": "scripts/setup",
+    "name": "lymanepp/ha-smartify",
+    "image": "mcr.microsoft.com/vscode/devcontainers/python:3.13-bullseye",
+    "postCreateCommand": ".devcontainer/post-create",
     "forwardPorts": [
         8123
     ],
