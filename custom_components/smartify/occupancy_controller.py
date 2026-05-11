@@ -26,6 +26,7 @@ class MyEvent(enum.StrEnum):
     """State machine events."""
 
     TRIGGER = "trigger"
+    TRIGGER_UPDATE = "trigger_update"
     SUSTAIN_UPDATE = "sustain_update"
     REQUIRED_UPDATE = "required_update"
     TIMER = "timer"
@@ -46,8 +47,9 @@ class OccupancyController(SmartifyController):
 
     * If one or more triggers are configured, only a trigger turning on may enter the
       occupied state. Sustains cannot create occupancy while vacant.
-    * If triggers are configured and sustains are also configured, occupancy exits
-      as soon as all sustains are off.
+    * If triggers are configured and sustains are also configured, a trigger may
+      start occupancy and keep it occupied while the trigger remains on. Occupancy
+      exits after all triggers and all sustains are off.
     * If triggers are configured and no sustains are configured, occupancy exits
       when the decay timer expires. Each trigger that turns on while occupied
       restarts that decay timer.
@@ -147,6 +149,9 @@ class OccupancyController(SmartifyController):
             if state.state == STATE_ON:
                 self._last_trigger_entity = state.entity_id
                 await self.fire_event(MyEvent.TRIGGER)
+            elif state.state in ON_OFF_STATES:
+                self._last_trigger_entity = state.entity_id
+                await self.fire_event(MyEvent.TRIGGER_UPDATE)
 
         elif state.entity_id in self._sustain_entities:
             if state.state in ON_OFF_STATES:
@@ -190,6 +195,13 @@ class OccupancyController(SmartifyController):
         def have_sustains() -> bool:
             return bool(self._sustain_entities)
 
+        def have_active_trigger() -> bool:
+            for entity in self._trigger_entities:
+                state = self.hass.states.get(entity)
+                if state and state.state == STATE_ON:
+                    return True
+            return False
+
         def have_active_sustain() -> bool:
             for entity in self._sustain_entities:
                 state = self.hass.states.get(entity)
@@ -224,7 +236,7 @@ class OccupancyController(SmartifyController):
                 return
 
             if have_sustains():
-                if not have_active_sustain():
+                if not have_active_trigger() and not have_active_sustain():
                     enter_unoccupied_state()
                 return
 
@@ -236,7 +248,6 @@ class OccupancyController(SmartifyController):
             case (MyState.UNOCCUPIED, MyEvent.TRIGGER):
                 if have_triggers() and have_required():
                     enter_occupied_state()
-                    reevaluate_occupied_state()
 
             case (MyState.UNOCCUPIED, MyEvent.SUSTAIN_UPDATE):
                 if not have_triggers() and have_active_sustain() and have_required():
@@ -254,9 +265,12 @@ class OccupancyController(SmartifyController):
                     # occupancy by restarting the decay timer.
                     start_trigger_decay_timer()
                 else:
-                    # Hybrid strategy: triggers may enter occupancy, but sustains
-                    # determine whether occupancy remains active.
+                    # Hybrid strategy: an active trigger may keep occupancy alive
+                    # while sustain sensors catch up.
                     reevaluate_occupied_state()
+
+            case (MyState.OCCUPIED, MyEvent.TRIGGER_UPDATE):
+                reevaluate_occupied_state()
 
             case (MyState.OCCUPIED, MyEvent.SUSTAIN_UPDATE):
                 reevaluate_occupied_state()

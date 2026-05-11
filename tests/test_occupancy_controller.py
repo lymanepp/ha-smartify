@@ -226,7 +226,7 @@ async def test_hybrid_trigger_enters_occupied_when_sustain_is_active_without_tim
 
 
 @pytest.mark.asyncio
-async def test_hybrid_trigger_does_not_remain_occupied_when_all_sustains_are_off(
+async def test_hybrid_trigger_remains_occupied_while_trigger_is_on_even_if_sustain_is_off(
     hass: HomeAssistant,
 ):
     trigger = "binary_sensor.office_pir"
@@ -247,6 +247,38 @@ async def test_hybrid_trigger_does_not_remain_occupied_when_all_sustains_are_off
     state = hass.states.get(trigger)
     assert state is not None
 
+    await controller.on_state_change(state)
+
+    assert controller.state == MyState.OCCUPIED
+
+
+@pytest.mark.asyncio
+async def test_hybrid_exits_when_trigger_and_sustain_are_both_off(
+    hass: HomeAssistant,
+):
+    trigger = "binary_sensor.office_pir"
+    sustain = "binary_sensor.office_mmwave"
+    hass.states.async_set(trigger, STATE_ON)
+    hass.states.async_set(sustain, STATE_OFF)
+
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.TRIGGER_ENTITIES: [trigger],
+                Config.SUSTAIN_ENTITIES: [sustain],
+            }
+        ),
+    )
+
+    state = hass.states.get(trigger)
+    assert state is not None
+    await controller.on_state_change(state)
+    assert controller.state == MyState.OCCUPIED
+
+    hass.states.async_set(trigger, STATE_OFF)
+    state = hass.states.get(trigger)
+    assert state is not None
     await controller.on_state_change(state)
 
     assert controller.state == MyState.UNOCCUPIED
