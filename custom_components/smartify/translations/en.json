@@ -75,25 +75,23 @@
       },
       "occupancy": {
         "title": "Configure occupancy sensor",
-        "description": "Create an occupancy sensor based on motion sensors, door sensors and other entities.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Create a room occupancy controller using trigger entities and sustain entities. The name you enter is used for the controller device and the primary occupancy sensor.\n\nTrigger entities START occupancy. Use PIR or motion-style entities that should make the room occupied when they turn on. When any trigger entities are configured, only those triggers can start occupancy.\n\nSustain entities KEEP occupancy active. Use mmWave, presence, BLE, media, computer/activity, or other on/off entities that should prove the room is still occupied. If no trigger entities are configured, any sustain entity turning on will start occupancy and occupancy turns off when all sustain entities are off.\n\nIf trigger entities are configured without sustain entities, set a decay time so occupancy can turn off after the last trigger.\n\nIf you need help with the configuration have a look here: {github_url}",
         "data": {
-          "sensor_name": "Occupancy sensor name:",
-          "motion_sensors": "Occupancy will be detected for specified minutes whenever motion is detected by any of these sensors (optional):",
-          "motion_off_minutes": "Turn off after (optional):",
-          "other_entities": "Occupancy will be detected if any of these sensors are 'on' (optional):",
-          "door_sensors": "Occupancy will be detected indefinitely when motion is detected in a room as long as all doors remain closed--even after motion stops. Only add door sensors when all access points in the area have sensors. Door sensors need to report quickly and cloud-based sensors should be avoided (optional):",
-          "required_on_entities": "The following sensors must all be 'on' for occupancy to be detected (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for occupancy to be detected (optional):"
+          "sensor_name": "Occupancy controller name:",
+          "trigger_entities": "Trigger entities (optional): start occupancy when one turns on. Best for PIR/motion sensors. If any triggers are configured, sustain entities cannot start occupancy while vacant:",
+          "decay_minutes": "Trigger-only decay time (required only when no sustain entities are configured):",
+          "sustain_entities": "Sustain entities (optional): keep occupancy active while any are on. Best for mmWave/presence/BLE/media/activity entities. If no triggers are configured, sustains also start occupancy:",
+          "required_on_entities": "Required ON entities (optional): all must be on for occupancy to start or remain active:",
+          "required_off_entities": "Required OFF entities (optional): all must be off for occupancy to start or remain active:"
         }
       }
     },
     "error": {
-      "door_needs_motion": "Door sensors require motion sensors to be specified.",
       "duplicate_name": "An integration with the same name already exists.",
-      "motion_needs_minutes": "Motion sensors require 'turn off after' to be specified.",
       "occupancy_and_auto_off": "Occupancy sensor and automatic off cannot be used together.",
-      "occupancy_needs_trigger": "Must specify motion sensors and/or other entities.",
-      "off_minutes_required": "'Turn off after minutes' is required."
+      "off_minutes_required": "'Turn off after minutes' is required.",
+      "occupancy_needs_entity": "Specify at least one trigger entity or sustain entity.",
+      "trigger_only_needs_minutes": "Trigger-only occupancy requires a decay time because no sustain entities are configured."
     },
     "abort": {
       "nothing_to_control": "No entities are available to control"
@@ -145,25 +143,23 @@
       },
       "occupancy": {
         "title": "Configure occupancy sensor",
-        "description": "Create an occupancy sensor based on motion sensors, door sensors and other entities.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Create a room occupancy controller using trigger entities and sustain entities. The name you enter is used for the controller device and the primary occupancy sensor.\n\nTrigger entities START occupancy. Use PIR or motion-style entities that should make the room occupied when they turn on. When any trigger entities are configured, only those triggers can start occupancy.\n\nSustain entities KEEP occupancy active. Use mmWave, presence, BLE, media, computer/activity, or other on/off entities that should prove the room is still occupied. If no trigger entities are configured, any sustain entity turning on will start occupancy and occupancy turns off when all sustain entities are off.\n\nIf trigger entities are configured without sustain entities, set a decay time so occupancy can turn off after the last trigger.\n\nIf you need help with the configuration have a look here: {github_url}",
         "data": {
-          "sensor_name": "Occupancy sensor name:",
-          "motion_sensors": "Occupancy will be detected for specified minutes whenever motion is detected by any of these sensors (optional):",
-          "motion_off_minutes": "Turn off after (optional):",
-          "other_entities": "Occupancy will be detected if any of these sensors are 'on' (optional):",
-          "door_sensors": "Occupancy will be detected indefinitely when motion is detected in a room as long as all doors remain closed--even after motion stops. Only add door sensors when all access points in the area have sensors. Door sensors need to report quickly and cloud-based sensors should be avoided (optional):",
-          "required_on_entities": "The following sensors must all be 'on' for occupancy to be detected (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for occupancy to be detected (optional):"
+          "sensor_name": "Occupancy controller name:",
+          "trigger_entities": "Trigger entities (optional): start occupancy when one turns on. Best for PIR/motion sensors. If any triggers are configured, sustain entities cannot start occupancy while vacant:",
+          "decay_minutes": "Trigger-only decay time (required only when no sustain entities are configured):",
+          "sustain_entities": "Sustain entities (optional): keep occupancy active while any are on. Best for mmWave/presence/BLE/media/activity entities. If no triggers are configured, sustains also start occupancy:",
+          "required_on_entities": "Required ON entities (optional): all must be on for occupancy to start or remain active:",
+          "required_off_entities": "Required OFF entities (optional): all must be off for occupancy to start or remain active:"
         }
       }
     },
     "error": {
       "duplicate_name": "An integration with the same name already exists.",
       "occupancy_and_auto_off": "Occupancy sensor and automatic off cannot be used together.",
-      "door_needs_motion": "Door sensors require motion sensors to be specified.",
-      "motion_needs_minutes": "Motion sensors require 'turn off after' to be specified.",
-      "occupancy_needs_trigger": "Must specify motion sensors and/or other entities.",
-      "off_minutes_required": "'Turn off after minutes' is required."
+      "off_minutes_required": "'Turn off after minutes' is required.",
+      "occupancy_needs_entity": "Specify at least one trigger entity or sustain entity.",
+      "trigger_only_needs_minutes": "Trigger-only occupancy requires a decay time because no sustain entities are configured."
     },
     "abort": {}
   }

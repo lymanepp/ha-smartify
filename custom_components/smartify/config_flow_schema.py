@@ -1,4 +1,4 @@
-"""Adds config flow for Light Controller."""
+"""Adds config flow schemas for Smartify controllers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from collections.abc import MutableMapping
 from typing import Final
 
 import voluptuous as vol
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.fan import ATTR_PERCENTAGE_STEP
 from homeassistant.components.input_boolean import DOMAIN as INPUT_BOOLEAN_DOMAIN
 from homeassistant.components.light import ATTR_SUPPORTED_COLOR_MODES, ColorMode
@@ -401,14 +400,21 @@ def make_light_schema(
     return vol.Schema(schema)
 
 
-def make_occupancy_schema(hass: HomeAssistant, user_input: ConfigType) -> vol.Schema:
+def make_occupancy_schema(
+    hass: HomeAssistant,
+    user_input: ConfigType,
+    *,
+    include_name: bool = True,
+) -> vol.Schema:
     """Create 'occupancy' config schema."""
 
-    motion_sensors = domain_entities(
-        hass,
-        [Platform.BINARY_SENSOR],
-        device_classes=BinarySensorDeviceClass.MOTION,
-    )
+    trigger_entities = domain_entities(
+        hass, [Platform.BINARY_SENSOR, INPUT_BOOLEAN_DOMAIN]
+    ) | on_off_entities(hass, [Platform.BINARY_SENSOR, INPUT_BOOLEAN_DOMAIN])
+
+    sustain_entities = set(trigger_entities)
+
+    required_entities = set(trigger_entities)
 
     minutes_selector = selector.NumberSelector(
         selector.NumberSelectorConfig(
@@ -419,67 +425,48 @@ def make_occupancy_schema(hass: HomeAssistant, user_input: ConfigType) -> vol.Sc
         ),
     )
 
-    conditional_entities = domain_entities(
-        hass, [Platform.BINARY_SENSOR, INPUT_BOOLEAN_DOMAIN]
-    ) | on_off_entities(hass, [Platform.BINARY_SENSOR, INPUT_BOOLEAN_DOMAIN])
+    schema = {}
 
-    conditional_entities -= motion_sensors
-
-    door_sensors = domain_entities(
-        hass,
-        [Platform.BINARY_SENSOR],
-        device_classes=[
-            BinarySensorDeviceClass.DOOR,
-            BinarySensorDeviceClass.GARAGE_DOOR,
-        ],
-    )
-
-    return vol.Schema(
-        {
-            # name
+    if include_name:
+        schema[
             vol.Required(
                 str(Config.SENSOR_NAME),
                 default=user_input.get(Config.SENSOR_NAME, vol.UNDEFINED),
-            ): str,
-            # motion sensors
+            )
+        ] = str
+
+    schema.update(
+        {
+            # trigger entities
             vol.Optional(
-                str(Config.MOTION_SENSORS),
-                default=user_input.get(Config.MOTION_SENSORS, vol.UNDEFINED),
+                str(Config.TRIGGER_ENTITIES),
+                default=user_input.get(Config.TRIGGER_ENTITIES, vol.UNDEFINED),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    include_entities=list(motion_sensors), multiple=True
+                    include_entities=sorted(trigger_entities), multiple=True
                 ),
             ),
-            # motion-off minutes
+            # sustain entities
             vol.Optional(
-                str(Config.MOTION_OFF_MINUTES),
-                default=user_input.get(Config.MOTION_OFF_MINUTES, vol.UNDEFINED),
+                str(Config.SUSTAIN_ENTITIES),
+                default=user_input.get(Config.SUSTAIN_ENTITIES, vol.UNDEFINED),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    include_entities=sorted(sustain_entities), multiple=True
+                ),
+            ),
+            # trigger-only decay minutes
+            vol.Optional(
+                str(Config.DECAY_MINUTES),
+                default=user_input.get(Config.DECAY_MINUTES, vol.UNDEFINED),
             ): vol.All(minutes_selector, vol.Coerce(int)),
-            # other entities
-            vol.Optional(
-                str(Config.OTHER_ENTITIES),
-                default=user_input.get(Config.OTHER_ENTITIES, vol.UNDEFINED),
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    include_entities=list(conditional_entities), multiple=True
-                ),
-            ),
-            # door sensors
-            vol.Optional(
-                str(Config.DOOR_SENSORS),
-                default=user_input.get(Config.DOOR_SENSORS, vol.UNDEFINED),
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    include_entities=list(door_sensors), multiple=True
-                ),
-            ),
             # required on entities
             vol.Optional(
                 str(Config.REQUIRED_ON_ENTITIES),
                 default=user_input.get(Config.REQUIRED_ON_ENTITIES, vol.UNDEFINED),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    include_entities=list(conditional_entities), multiple=True
+                    include_entities=sorted(required_entities), multiple=True
                 ),
             ),
             # required off entities
@@ -488,11 +475,13 @@ def make_occupancy_schema(hass: HomeAssistant, user_input: ConfigType) -> vol.Sc
                 default=user_input.get(Config.REQUIRED_OFF_ENTITIES, vol.UNDEFINED),
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
-                    include_entities=list(conditional_entities), multiple=True
+                    include_entities=sorted(required_entities), multiple=True
                 ),
             ),
         }
     )
+
+    return vol.Schema(schema)
 
 
 # #### Internal functions ####

@@ -1,4 +1,4 @@
-"""Adds config flow for Light Controller."""
+"""Adds config and options flows for Smartify."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ SSI_URL: Final = "http://www.summersimmer.com/home.htm"
 
 
 class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Config flow for Light Controller."""
+    """Config flow for Smartify."""
 
     VERSION = 1
 
@@ -88,6 +88,7 @@ class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=make_controlled_entity_schema(
                 self.hass, user_input or {}, Platform.FAN
             ),
+            description_placeholders=self._placeholders,
             errors=errors,
         )
 
@@ -157,6 +158,7 @@ class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=make_controlled_entity_schema(
                 self.hass, user_input or {}, Platform.FAN
             ),
+            description_placeholders=self._placeholders,
             errors=errors,
         )
 
@@ -222,6 +224,7 @@ class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=make_controlled_entity_schema(
                 self.hass, user_input or {}, Platform.LIGHT
             ),
+            description_placeholders=self._placeholders,
             errors=errors,
         )
 
@@ -280,7 +283,11 @@ class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 data = {
                     Config.CONTROLLER_TYPE: ControllerType.OCCUPANCY,
-                    **user_input,
+                    **{
+                        key: value
+                        for key, value in user_input.items()
+                        if key != Config.SENSOR_NAME
+                    },
                 }
 
                 return self.async_create_entry(title=sensor_name, data=data)
@@ -288,6 +295,7 @@ class SmartifyConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="occupancy",
             data_schema=make_occupancy_schema(self.hass, user_input or {}),
+            description_placeholders=self._placeholders,
             errors=errors,
         )
 
@@ -422,14 +430,18 @@ class SmartifyOptionsFlow(OptionsFlow):  # type: ignore
         errors: ErrorsType = {}
 
         if user_input is not None and _validate_occupancy(user_input, errors):
-            sensor_name = user_input[Config.SENSOR_NAME]
-            return self.async_create_entry(title=sensor_name, data=user_input)
+            return self.async_create_entry(title="", data=user_input)
 
-        schema = make_occupancy_schema(self.hass, user_input or self.original_data)
+        schema = make_occupancy_schema(
+            self.hass,
+            user_input or self.original_data,
+            include_name=False,
+        )
 
         return self.async_show_form(
             step_id="occupancy",
             data_schema=schema,
+            description_placeholders=self._placeholders,
             errors=errors,
         )
 
@@ -438,21 +450,23 @@ class SmartifyOptionsFlow(OptionsFlow):  # type: ignore
 
 
 def _validate_occupancy(user_input: ConfigType, errors: ErrorsType) -> bool:
-    motion_sensors = user_input.get(Config.MOTION_SENSORS)
-    off_minutes = user_input.get(Config.MOTION_OFF_MINUTES)
-    door_sensors = user_input.get(Config.DOOR_SENSORS)
-    other_entities = user_input.get(Config.OTHER_ENTITIES)
+    """Validate occupancy controller configuration.
 
-    if not motion_sensors and not other_entities:
-        errors["base"] = "occupancy_needs_trigger"
+    Trigger entities are allowed to start occupancy. Sustain entities are allowed
+    to maintain occupancy. If triggers exist without sustains, the controller
+    needs a decay timer because nothing else can prove the room remains occupied.
+    If sustains exist, no decay timer is required.
+    """
+    trigger_entities = user_input.get(Config.TRIGGER_ENTITIES)
+    sustain_entities = user_input.get(Config.SUSTAIN_ENTITIES)
+    decay_minutes = user_input.get(Config.DECAY_MINUTES)
+
+    if not trigger_entities and not sustain_entities:
+        errors["base"] = "occupancy_needs_entity"
         return False
 
-    if motion_sensors and not off_minutes:
-        errors["base"] = "motion_needs_minutes"
-        return False
-
-    if door_sensors and not motion_sensors:
-        errors["base"] = "door_needs_motion"
+    if trigger_entities and not sustain_entities and not decay_minutes:
+        errors["base"] = "trigger_only_needs_decay"
         return False
 
     return True

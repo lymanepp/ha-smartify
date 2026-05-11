@@ -15,16 +15,23 @@ from .smartify_controller import SmartifyController
 class SmartifyEntity(Entity):
     """SmartifyEntity class."""
 
-    def __init__(self, controller: SmartifyController) -> None:
+    def __init__(
+        self,
+        controller: SmartifyController,
+        unique_id_suffix: str | None = None,
+    ) -> None:
         """Initialize."""
-        unique_id = controller.config_entry.entry_id
+        entry_id = controller.config_entry.entry_id
         self.hass = controller.hass
         self.controller = controller
-        self._attr_unique_id = unique_id
+        self._attr_unique_id = (
+            f"{entry_id}_{unique_id_suffix}" if unique_id_suffix else entry_id
+        )
+        self._attr_has_entity_name = True
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, unique_id)},
+            identifiers={(DOMAIN, entry_id)},
             entry_type=DeviceEntryType.SERVICE,
-            name=NAME,
+            name=controller.config_entry.title,
             manufacturer=NAME,
         )
         self.hass.async_create_task(self._set_sw_version())

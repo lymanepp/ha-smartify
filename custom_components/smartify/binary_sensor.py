@@ -35,7 +35,6 @@ async def async_setup_entry(
             SmartifyBinarySensor(
                 controller=controller,
                 entity_description=entity_description,
-                name=config_entry.title,
             )
             for entity_description in ENTITY_DESCRIPTIONS
             if entity_description.key == type_
@@ -50,12 +49,12 @@ class SmartifyBinarySensor(SmartifyEntity, BinarySensorEntity):
         self,
         controller: SmartifyController,
         entity_description: BinarySensorEntityDescription,
-        name: str,
     ) -> None:
         """Initialize the sensor class."""
         super().__init__(controller)
         self.entity_description = entity_description
-        self._attr_name = name
+        # Primary entity: use the device/controller name without adding a suffix.
+        self._attr_name = None
 
     @property
     def is_on(self):

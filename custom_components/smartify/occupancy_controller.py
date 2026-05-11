@@ -1,4 +1,4 @@
-"""Representation of a Occupancy Controller."""
+"""Representation of an Occupancy Controller."""
 
 from __future__ import annotations
 
@@ -19,41 +19,55 @@ class MyState(enum.StrEnum):
     """State machine states."""
 
     UNOCCUPIED = "unoccupied"
-    MOTION = "motion"
-    WASP_IN_BOX = "wasp_in_box"
-    OTHER = "other"
+    OCCUPIED = "occupied"
 
 
 class MyEvent(enum.StrEnum):
     """State machine events."""
 
-    MOTION = "motion"
+    TRIGGER = "trigger"
+    SUSTAIN_UPDATE = "sustain_update"
+    REQUIRED_UPDATE = "required_update"
     TIMER = "timer"
-    UPDATE = "update"
-    DOOR_OPEN = "door_open"
 
 
-ON_STATES: Final = {MyState.MOTION, MyState.OTHER, MyState.WASP_IN_BOX}
+ON_STATES: Final = {MyState.OCCUPIED}
 
 
 class OccupancyController(SmartifyController):
-    """Representation of an Occupancy Controller."""
+    """Representation of an Occupancy Controller.
+
+    This controller intentionally uses a simple two-role occupancy model:
+
+    * Triggers: entities that are allowed to start occupancy.
+    * Sustains: entities that are allowed to maintain occupancy.
+
+    Rules:
+
+    * If one or more triggers are configured, only a trigger turning on may enter the
+      occupied state. Sustains cannot create occupancy while vacant.
+    * If triggers are configured and sustains are also configured, occupancy exits
+      as soon as all sustains are off.
+    * If triggers are configured and no sustains are configured, occupancy exits
+      when the decay timer expires. Each trigger that turns on while occupied
+      restarts that decay timer.
+    * If no triggers are configured, any sustain turning on will enter the occupied
+      state, and occupancy exits as soon as all sustains are off. No timer is used.
+    """
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the Occupancy Controller."""
         super().__init__(hass, config_entry, initial_state=MyState.UNOCCUPIED)
 
         self.name = config_entry.title
-        self._motion_sensors: list[str] = self.data.get(Config.MOTION_SENSORS, [])
-        motion_off_minutes = self.data.get(Config.MOTION_OFF_MINUTES)
 
+        self._trigger_entities: list[str] = self.data.get(Config.TRIGGER_ENTITIES, [])
+        self._sustain_entities: list[str] = self.data.get(Config.SUSTAIN_ENTITIES, [])
+
+        decay_minutes = self.data.get(Config.DECAY_MINUTES)
         self._motion_off_period = (
-            timedelta(minutes=motion_off_minutes) if motion_off_minutes else None
+            timedelta(minutes=decay_minutes) if decay_minutes else None
         )
-
-        self._other_entities: list[str] = self.data.get(Config.OTHER_ENTITIES, [])
-
-        self._door_sensors: list[str] = self.data.get(Config.DOOR_SENSORS, [])
 
         required_on_entities: list[str] = self.data.get(Config.REQUIRED_ON_ENTITIES, [])
         required_off_entities: list[str] = self.data.get(
@@ -67,35 +81,30 @@ class OccupancyController(SmartifyController):
         self.tracked_entity_ids = remove_empty(
             [
                 self.controlled_entity,
-                *self._motion_sensors,
-                *self._other_entities,
-                *self._door_sensors,
+                *self._trigger_entities,
+                *self._sustain_entities,
                 *self._required,
             ]
         )
 
     @property
-    def is_on(self):
+    def is_on(self) -> bool:
         """Return the status of the sensor."""
         return self._state in ON_STATES
 
     async def on_state_change(self, state: State) -> None:
         """Handle entity state changes from base."""
-        if state.entity_id in self._motion_sensors:
+        if state.entity_id in self._trigger_entities:
             if state.state == STATE_ON:
-                await self.fire_event(MyEvent.MOTION)
+                await self.fire_event(MyEvent.TRIGGER)
 
-        elif state.entity_id in self._other_entities:
+        elif state.entity_id in self._sustain_entities:
             if state.state in ON_OFF_STATES:
-                await self.fire_event(MyEvent.UPDATE)
-
-        elif state.entity_id in self._door_sensors:
-            if state.state == STATE_ON:
-                await self.fire_event(MyEvent.DOOR_OPEN)
+                await self.fire_event(MyEvent.SUSTAIN_UPDATE)
 
         elif state.entity_id in self._required:
             if state.state in ON_OFF_STATES:
-                await self.fire_event(MyEvent.UPDATE)
+                await self.fire_event(MyEvent.REQUIRED_UPDATE)
 
     async def on_timer_expired(self) -> None:
         """Handle timer expiration from base."""
@@ -104,35 +113,18 @@ class OccupancyController(SmartifyController):
     async def on_event(self, event: MyEvent) -> None:
         """Handle controller events."""
 
-        def enter_unoccupied_state() -> None:
-            self.set_timer(None)
-            self.set_state(MyState.UNOCCUPIED)
+        def have_triggers() -> bool:
+            return bool(self._trigger_entities)
 
-        def enter_motion_state() -> None:
-            self.set_timer(self._motion_off_period)
-            self.set_state(MyState.MOTION)
+        def have_sustains() -> bool:
+            return bool(self._sustain_entities)
 
-        def enter_wasp_in_box_state() -> None:
-            self.set_timer(None)
-            self.set_state(MyState.WASP_IN_BOX)
-
-        def enter_other_state() -> None:
-            self.set_timer(None)
-            self.set_state(MyState.OTHER)
-
-        def have_other() -> bool:
-            for entity in self._other_entities:
+        def have_active_sustain() -> bool:
+            for entity in self._sustain_entities:
                 state = self.hass.states.get(entity)
                 if state and state.state == STATE_ON:
                     return True
             return False
-
-        def doors_closed() -> bool:
-            closed: list[bool] = []
-            for entity in self._door_sensors:
-                state = self.hass.states.get(entity)
-                closed.append(state.state == STATE_ON if state else False)
-            return bool(closed) and all(closed)
 
         def have_required() -> bool:
             actual: dict[str, str | None] = {}
@@ -141,47 +133,74 @@ class OccupancyController(SmartifyController):
                 actual[entity] = state.state if state else None
             return actual == self._required
 
+        def enter_unoccupied_state() -> None:
+            self.set_timer(None)
+            self.set_state(MyState.UNOCCUPIED)
+
+        def start_trigger_decay_timer() -> None:
+            self.set_timer(self._motion_off_period)
+
+        def enter_occupied_state() -> None:
+            if have_sustains():
+                self.set_timer(None)
+            else:
+                start_trigger_decay_timer()
+            self.set_state(MyState.OCCUPIED)
+
+        def reevaluate_occupied_state() -> None:
+            if not have_required():
+                enter_unoccupied_state()
+                return
+
+            if have_sustains():
+                if not have_active_sustain():
+                    enter_unoccupied_state()
+                return
+
+            # No sustains configured: occupancy is controlled by trigger-created
+            # decay timer only. There is nothing to reevaluate until the timer
+            # expires or another trigger restarts it.
+
         match (self._state, event):
-            case (MyState.UNOCCUPIED, MyEvent.MOTION) if have_required():
-                if doors_closed():
-                    enter_wasp_in_box_state()
-                else:
-                    enter_motion_state()
+            case (MyState.UNOCCUPIED, MyEvent.TRIGGER):
+                if have_triggers() and have_required():
+                    enter_occupied_state()
+                    reevaluate_occupied_state()
 
-            case (MyState.UNOCCUPIED, MyEvent.UPDATE) if have_required():
-                if have_other():
-                    enter_other_state()
+            case (MyState.UNOCCUPIED, MyEvent.SUSTAIN_UPDATE):
+                if not have_triggers() and have_active_sustain() and have_required():
+                    enter_occupied_state()
 
-            case (MyState.MOTION, MyEvent.MOTION):
-                if doors_closed():
-                    enter_wasp_in_box_state()
-                else:
-                    enter_motion_state()  # restart the timer
+            case (MyState.UNOCCUPIED, MyEvent.REQUIRED_UPDATE):
+                if not have_triggers() and have_active_sustain() and have_required():
+                    enter_occupied_state()
 
-            case (MyState.MOTION, MyEvent.TIMER):
-                if have_other():
-                    enter_other_state()
-                else:
+            case (MyState.OCCUPIED, MyEvent.TRIGGER):
+                if not have_required():
                     enter_unoccupied_state()
-
-            case (MyState.MOTION, MyEvent.UPDATE) if not have_required():
-                enter_unoccupied_state()
-
-            case (MyState.WASP_IN_BOX, MyEvent.DOOR_OPEN):
-                enter_motion_state()
-
-            case (MyState.WASP_IN_BOX, MyEvent.UPDATE) if not have_required():
-                enter_unoccupied_state()
-
-            case (MyState.OTHER, MyEvent.MOTION):
-                if doors_closed():
-                    enter_wasp_in_box_state()
+                elif not have_sustains():
+                    # Trigger-only strategy: each trigger ON event extends
+                    # occupancy by restarting the decay timer.
+                    start_trigger_decay_timer()
                 else:
-                    enter_motion_state()
+                    # Hybrid strategy: triggers may enter occupancy, but sustains
+                    # determine whether occupancy remains active.
+                    reevaluate_occupied_state()
 
-            case (MyState.OTHER, MyEvent.UPDATE):
-                if not (have_other() and have_required()):
+            case (MyState.OCCUPIED, MyEvent.SUSTAIN_UPDATE):
+                reevaluate_occupied_state()
+
+            case (MyState.OCCUPIED, MyEvent.REQUIRED_UPDATE):
+                reevaluate_occupied_state()
+
+            case (MyState.OCCUPIED, MyEvent.TIMER):
+                if not have_sustains():
                     enter_unoccupied_state()
+                else:
+                    # A timer should not normally exist while sustains are configured,
+                    # but make the event harmless if an old timer fires after a config
+                    # reload or race.
+                    reevaluate_occupied_state()
 
             case _:
                 _LOGGER.debug(
