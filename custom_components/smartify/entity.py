@@ -34,10 +34,9 @@ class SmartifyEntity(Entity):
             name=controller.config_entry.title,
             manufacturer=NAME,
         )
-        self.hass.async_create_task(self._set_sw_version())
-
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
+        await self._set_sw_version()
         self.async_on_remove(self.controller.async_add_listener(self._update_callback))
         self._update_callback()
 

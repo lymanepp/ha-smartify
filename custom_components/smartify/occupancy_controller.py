@@ -64,6 +64,11 @@ class OccupancyController(SmartifyController):
         self._trigger_entities: list[str] = self.data.get(Config.TRIGGER_ENTITIES, [])
         self._sustain_entities: list[str] = self.data.get(Config.SUSTAIN_ENTITIES, [])
 
+        self._last_event: MyEvent | None = None
+        self._last_trigger_entity: str | None = None
+        self._last_sustain_entity: str | None = None
+        self._last_required_entity: str | None = None
+
         decay_minutes = self.data.get(Config.DECAY_MINUTES)
         self._motion_off_period = (
             timedelta(minutes=decay_minutes) if decay_minutes else None
@@ -92,26 +97,92 @@ class OccupancyController(SmartifyController):
         """Return the status of the sensor."""
         return self._state in ON_STATES
 
+    @property
+    def occupancy_strategy(self) -> str:
+        """Return the configured occupancy strategy."""
+        if self._trigger_entities and self._sustain_entities:
+            return "trigger_and_sustain"
+        if self._trigger_entities:
+            return "trigger_only"
+        if self._sustain_entities:
+            return "sustain_only"
+        return "unconfigured"
+
+    @property
+    def active_trigger_entities(self) -> list[str]:
+        """Return configured trigger entities that are currently on."""
+        return self._active_entities(self._trigger_entities)
+
+    @property
+    def active_sustain_entities(self) -> list[str]:
+        """Return configured sustain entities that are currently on."""
+        return self._active_entities(self._sustain_entities)
+
+    @property
+    def required_satisfied(self) -> bool:
+        """Return whether all required entity conditions are currently satisfied."""
+        return self._have_required()
+
+    @property
+    def diagnostic_attributes(self) -> dict[str, object]:
+        """Return diagnostic attributes for the occupancy state sensor."""
+        return {
+            "strategy": self.occupancy_strategy,
+            "trigger_entities": self._trigger_entities,
+            "sustain_entities": self._sustain_entities,
+            "active_trigger_entities": self.active_trigger_entities,
+            "active_sustain_entities": self.active_sustain_entities,
+            "required_entities": self._required,
+            "required_satisfied": self.required_satisfied,
+            "decay_minutes": self.data.get(Config.DECAY_MINUTES),
+            "last_event": self._last_event.value if self._last_event else None,
+            "last_trigger_entity": self._last_trigger_entity,
+            "last_sustain_entity": self._last_sustain_entity,
+            "last_required_entity": self._last_required_entity,
+        }
+
     async def on_state_change(self, state: State) -> None:
         """Handle entity state changes from base."""
         if state.entity_id in self._trigger_entities:
             if state.state == STATE_ON:
+                self._last_trigger_entity = state.entity_id
                 await self.fire_event(MyEvent.TRIGGER)
 
         elif state.entity_id in self._sustain_entities:
             if state.state in ON_OFF_STATES:
+                self._last_sustain_entity = state.entity_id
                 await self.fire_event(MyEvent.SUSTAIN_UPDATE)
 
         elif state.entity_id in self._required:
             if state.state in ON_OFF_STATES:
+                self._last_required_entity = state.entity_id
                 await self.fire_event(MyEvent.REQUIRED_UPDATE)
 
     async def on_timer_expired(self) -> None:
         """Handle timer expiration from base."""
         await self.fire_event(MyEvent.TIMER)
 
+    def _active_entities(self, entities: list[str]) -> list[str]:
+        """Return the entities from the provided list that are currently on."""
+        active: list[str] = []
+        for entity in entities:
+            state = self.hass.states.get(entity)
+            if state and state.state == STATE_ON:
+                active.append(entity)
+        return active
+
+    def _have_required(self) -> bool:
+        """Return whether the required entity states match configuration."""
+        actual: dict[str, str | None] = {}
+        for entity in self._required:
+            state = self.hass.states.get(entity)
+            actual[entity] = state.state if state else None
+        return actual == self._required
+
     async def on_event(self, event: MyEvent) -> None:
         """Handle controller events."""
+        original_state = self._state
+        self._last_event = event
 
         def have_triggers() -> bool:
             return bool(self._trigger_entities)
@@ -209,3 +280,6 @@ class OccupancyController(SmartifyController):
                     self._state,
                     event,
                 )
+
+        if self._state == original_state:
+            self._update_listeners()

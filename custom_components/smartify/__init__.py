@@ -17,7 +17,7 @@ from .light_controller import LightController
 from .occupancy_controller import OccupancyController
 from .smartify_controller import SmartifyController
 
-PLATFORMS = [Platform.BINARY_SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry

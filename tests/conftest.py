@@ -25,10 +25,8 @@ def auto_enable_custom_integrations(
 
 @pytest.fixture(autouse=True)
 def suppress_entity_sw_version(monkeypatch):
-    def _noop(*args, **kwargs):
-        return None
-
+    """Avoid doing version lookup work while preserving async method semantics."""
     monkeypatch.setattr(
         "custom_components.smartify.entity.SmartifyEntity._set_sw_version",
-        _noop,
+        AsyncMock(return_value=None),
     )
