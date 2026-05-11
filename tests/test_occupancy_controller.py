@@ -17,6 +17,7 @@ from custom_components.smartify.occupancy_controller import (
 def _entry(data: dict | None = None) -> MockConfigEntry:
     return MockConfigEntry(
         domain="smartify",
+        title="Office Occupancy",
         data=data or {},
     )
 
@@ -32,14 +33,24 @@ def _track_timer_calls(monkeypatch: pytest.MonkeyPatch, controller: OccupancyCon
     return calls
 
 
+async def _set_and_notify(
+    hass: HomeAssistant,
+    controller: OccupancyController,
+    entity_id: str,
+    state_value: str,
+):
+    hass.states.async_set(entity_id, state_value)
+    state = hass.states.get(entity_id)
+    assert state is not None
+    await controller.on_state_change(state)
+
+
 @pytest.mark.asyncio
 async def test_trigger_only_trigger_enters_occupied_and_starts_decay_timer(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
     trigger = "binary_sensor.office_pir"
-    hass.states.async_set(trigger, STATE_ON)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -51,10 +62,7 @@ async def test_trigger_only_trigger_enters_occupied_and_starts_decay_timer(
     )
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
-    state = hass.states.get(trigger)
-    assert state is not None
-
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
 
     assert controller.state == MyState.OCCUPIED
     assert timer_calls == [timedelta(minutes=2)]
@@ -65,18 +73,19 @@ async def test_trigger_only_retrigger_extends_occupancy_by_restarting_decay_time
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    trigger = "binary_sensor.office_pir"
     controller = OccupancyController(
         hass,
         _entry(
             {
-                Config.TRIGGER_ENTITIES: ["binary_sensor.office_pir"],
+                Config.TRIGGER_ENTITIES: [trigger],
                 Config.DECAY_MINUTES: 5,
             }
         ),
     )
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
-    await controller.fire_event(MyEvent.TRIGGER)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
     await controller.fire_event(MyEvent.TRIGGER)
 
     assert controller.state == MyState.OCCUPIED
@@ -87,22 +96,47 @@ async def test_trigger_only_retrigger_extends_occupancy_by_restarting_decay_time
 
 
 @pytest.mark.asyncio
-async def test_trigger_only_timer_expiration_exits_occupied_state(
+async def test_trigger_only_trigger_off_does_not_exit_before_decay_timer(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    trigger = "binary_sensor.office_pir"
     controller = OccupancyController(
         hass,
         _entry(
             {
-                Config.TRIGGER_ENTITIES: ["binary_sensor.office_pir"],
+                Config.TRIGGER_ENTITIES: [trigger],
                 Config.DECAY_MINUTES: 3,
             }
         ),
     )
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
-    await controller.fire_event(MyEvent.TRIGGER)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
+
+    assert controller.state == MyState.OCCUPIED
+    assert timer_calls == [timedelta(minutes=3)]
+
+
+@pytest.mark.asyncio
+async def test_trigger_only_timer_expiration_exits_occupied_state(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    trigger = "binary_sensor.office_pir"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.TRIGGER_ENTITIES: [trigger],
+                Config.DECAY_MINUTES: 3,
+            }
+        ),
+    )
+    timer_calls = _track_timer_calls(monkeypatch, controller)
+
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
     assert controller.state == MyState.OCCUPIED
 
     await controller.fire_event(MyEvent.TIMER)
@@ -120,8 +154,6 @@ async def test_sustain_only_sustain_on_enters_occupied_without_decay_timer(
     monkeypatch: pytest.MonkeyPatch,
 ):
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(sustain, STATE_ON)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -133,10 +165,7 @@ async def test_sustain_only_sustain_on_enters_occupied_without_decay_timer(
     )
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
-    state = hass.states.get(sustain)
-    assert state is not None
-
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
 
     assert controller.state == MyState.OCCUPIED
     assert timer_calls == [None]
@@ -147,63 +176,64 @@ async def test_sustain_only_all_sustains_off_exits_occupied_without_waiting_for_
     hass: HomeAssistant,
 ):
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(sustain, STATE_ON)
-
     controller = OccupancyController(
         hass,
         _entry({Config.SUSTAIN_ENTITIES: [sustain]}),
     )
 
-    state = hass.states.get(sustain)
-    assert state is not None
-
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
     assert controller.state == MyState.OCCUPIED
 
-    hass.states.async_set(sustain, STATE_OFF)
-    state = hass.states.get(sustain)
-    assert state is not None
-
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
 
     assert controller.state == MyState.UNOCCUPIED
+
+
+@pytest.mark.asyncio
+async def test_sustain_only_timer_event_is_harmless_while_sustain_is_active(
+    hass: HomeAssistant,
+):
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass,
+        _entry({Config.SUSTAIN_ENTITIES: [sustain]}),
+    )
+
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await controller.fire_event(MyEvent.TIMER)
+
+    assert controller.state == MyState.OCCUPIED
 
 
 @pytest.mark.asyncio
 async def test_hybrid_sustain_on_while_vacant_does_not_enter_occupied_state(
     hass: HomeAssistant,
 ):
+    trigger = "binary_sensor.office_pir"
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(sustain, STATE_ON)
-
     controller = OccupancyController(
         hass,
         _entry(
             {
-                Config.TRIGGER_ENTITIES: ["binary_sensor.office_pir"],
+                Config.TRIGGER_ENTITIES: [trigger],
                 Config.SUSTAIN_ENTITIES: [sustain],
             }
         ),
     )
 
-    state = hass.states.get(sustain)
-    assert state is not None
-
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
 
     assert controller.state == MyState.UNOCCUPIED
 
 
 @pytest.mark.asyncio
-async def test_hybrid_trigger_enters_occupied_when_sustain_is_active_without_timer(
+async def test_hybrid_trigger_enters_occupied_even_before_sustain_turns_on(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    """Regression: PIR trigger must not immediately turn off if mmWave lags."""
     trigger = "binary_sensor.office_pir"
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(trigger, STATE_ON)
-    hass.states.async_set(sustain, STATE_ON)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -216,24 +246,19 @@ async def test_hybrid_trigger_enters_occupied_when_sustain_is_active_without_tim
     )
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
-    state = hass.states.get(trigger)
-    assert state is not None
-
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
 
     assert controller.state == MyState.OCCUPIED
     assert timer_calls == [None]
 
 
 @pytest.mark.asyncio
-async def test_hybrid_trigger_remains_occupied_while_trigger_is_on_even_if_sustain_is_off(
+async def test_hybrid_sustain_off_does_not_exit_while_trigger_remains_on(
     hass: HomeAssistant,
 ):
     trigger = "binary_sensor.office_pir"
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(trigger, STATE_ON)
-    hass.states.async_set(sustain, STATE_OFF)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -244,10 +269,36 @@ async def test_hybrid_trigger_remains_occupied_while_trigger_is_on_even_if_susta
         ),
     )
 
-    state = hass.states.get(trigger)
-    assert state is not None
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
+    assert controller.state == MyState.OCCUPIED
 
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+
+    assert controller.state == MyState.OCCUPIED
+
+
+@pytest.mark.asyncio
+async def test_hybrid_trigger_off_does_not_exit_while_sustain_remains_on(
+    hass: HomeAssistant,
+):
+    trigger = "binary_sensor.office_pir"
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.TRIGGER_ENTITIES: [trigger],
+                Config.SUSTAIN_ENTITIES: [sustain],
+            }
+        ),
+    )
+
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
+    assert controller.state == MyState.OCCUPIED
+
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
 
     assert controller.state == MyState.OCCUPIED
 
@@ -258,9 +309,6 @@ async def test_hybrid_exits_when_trigger_and_sustain_are_both_off(
 ):
     trigger = "binary_sensor.office_pir"
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(trigger, STATE_ON)
-    hass.states.async_set(sustain, STATE_OFF)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -271,28 +319,25 @@ async def test_hybrid_exits_when_trigger_and_sustain_are_both_off(
         ),
     )
 
-    state = hass.states.get(trigger)
-    assert state is not None
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
     assert controller.state == MyState.OCCUPIED
 
-    hass.states.async_set(trigger, STATE_OFF)
-    state = hass.states.get(trigger)
-    assert state is not None
-    await controller.on_state_change(state)
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
+    assert controller.state == MyState.OCCUPIED
+
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
 
     assert controller.state == MyState.UNOCCUPIED
 
 
 @pytest.mark.asyncio
-async def test_hybrid_all_sustains_off_exits_occupied_state(
+async def test_hybrid_trigger_turns_on_sustain_turns_on_trigger_turns_off_stays_occupied(
     hass: HomeAssistant,
 ):
+    """Realistic PIR acquisition followed by delayed mmWave sustain."""
     trigger = "binary_sensor.office_pir"
     sustain = "binary_sensor.office_mmwave"
-    hass.states.async_set(trigger, STATE_ON)
-    hass.states.async_set(sustain, STATE_ON)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -303,25 +348,46 @@ async def test_hybrid_all_sustains_off_exits_occupied_state(
         ),
     )
 
-    trigger_state = hass.states.get(trigger)
-    assert trigger_state is not None
-
-    await controller.on_state_change(trigger_state)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
     assert controller.state == MyState.OCCUPIED
 
-    hass.states.async_set(sustain, STATE_OFF)
-    sustain_state = hass.states.get(sustain)
-    assert sustain_state is not None
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    assert controller.state == MyState.OCCUPIED
 
-    await controller.on_state_change(sustain_state)
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
 
-    assert controller.state == MyState.UNOCCUPIED
+    assert controller.state == MyState.OCCUPIED
+
+
+@pytest.mark.asyncio
+async def test_hybrid_timer_event_is_harmless_while_trigger_is_active(
+    hass: HomeAssistant,
+):
+    trigger = "binary_sensor.office_pir"
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.TRIGGER_ENTITIES: [trigger],
+                Config.SUSTAIN_ENTITIES: [sustain],
+            }
+        ),
+    )
+
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
+    assert controller.state == MyState.OCCUPIED
+
+    await controller.fire_event(MyEvent.TIMER)
+
+    assert controller.state == MyState.OCCUPIED
 
 
 @pytest.mark.asyncio
 async def test_required_entity_missing_prevents_trigger_occupancy(
     hass: HomeAssistant,
 ):
+    trigger = "binary_sensor.office_pir"
     required = "binary_sensor.required"
     hass.states.async_set(required, STATE_OFF)
 
@@ -329,13 +395,14 @@ async def test_required_entity_missing_prevents_trigger_occupancy(
         hass,
         _entry(
             {
-                Config.TRIGGER_ENTITIES: ["binary_sensor.office_pir"],
+                Config.TRIGGER_ENTITIES: [trigger],
                 Config.REQUIRED_ON_ENTITIES: [required],
+                Config.DECAY_MINUTES: 2,
             }
         ),
     )
 
-    await controller.fire_event(MyEvent.TRIGGER)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
 
     assert controller.state == MyState.UNOCCUPIED
 
@@ -346,7 +413,6 @@ async def test_required_entity_missing_prevents_sustain_only_occupancy(
 ):
     sustain = "binary_sensor.office_mmwave"
     required = "binary_sensor.required"
-    hass.states.async_set(sustain, STATE_ON)
     hass.states.async_set(required, STATE_OFF)
 
     controller = OccupancyController(
@@ -359,7 +425,32 @@ async def test_required_entity_missing_prevents_sustain_only_occupancy(
         ),
     )
 
-    await controller.fire_event(MyEvent.SUSTAIN_UPDATE)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+
+    assert controller.state == MyState.UNOCCUPIED
+
+
+@pytest.mark.asyncio
+async def test_occupied_state_exits_when_required_condition_becomes_invalid(
+    hass: HomeAssistant,
+):
+    sustain = "binary_sensor.office_mmwave"
+    required = "binary_sensor.required"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.SUSTAIN_ENTITIES: [sustain],
+                Config.REQUIRED_ON_ENTITIES: [required],
+            }
+        ),
+    )
+
+    await _set_and_notify(hass, controller, required, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    assert controller.state == MyState.OCCUPIED
+
+    await _set_and_notify(hass, controller, required, STATE_OFF)
 
     assert controller.state == MyState.UNOCCUPIED
 
@@ -370,9 +461,6 @@ async def test_sustain_only_required_update_enters_when_sustain_is_active_and_re
 ):
     sustain = "binary_sensor.office_mmwave"
     required = "binary_sensor.required"
-    hass.states.async_set(sustain, STATE_ON)
-    hass.states.async_set(required, STATE_OFF)
-
     controller = OccupancyController(
         hass,
         _entry(
@@ -383,10 +471,9 @@ async def test_sustain_only_required_update_enters_when_sustain_is_active_and_re
         ),
     )
 
-    await controller.fire_event(MyEvent.SUSTAIN_UPDATE)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
     assert controller.state == MyState.UNOCCUPIED
 
-    hass.states.async_set(required, STATE_ON)
-    await controller.fire_event(MyEvent.REQUIRED_UPDATE)
+    await _set_and_notify(hass, controller, required, STATE_ON)
 
     assert controller.state == MyState.OCCUPIED
