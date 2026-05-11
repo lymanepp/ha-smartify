@@ -4,7 +4,7 @@ from homeassistant.const import EntityCategory, STATE_ON
 
 from custom_components.smartify.const import Config
 from custom_components.smartify.occupancy_controller import OccupancyController
-from custom_components.smartify.sensor import SmartifyOccupancyStateSensor, OCCUPANCY_STATE_DESCRIPTION
+from custom_components.smartify.sensor import SmartifyControllerStateSensor, CONTROLLER_STATE_DESCRIPTION
 
 
 def _entry(data: dict | None = None):
@@ -22,9 +22,9 @@ def test_occupancy_state_sensor_uses_diagnostic_suffix(hass):
         _entry({Config.SUSTAIN_ENTITIES: ["binary_sensor.office_mmwave"]}),
     )
 
-    entity = SmartifyOccupancyStateSensor(controller, OCCUPANCY_STATE_DESCRIPTION)
+    entity = SmartifyControllerStateSensor(controller, CONTROLLER_STATE_DESCRIPTION)
 
-    assert entity.unique_id == "entry-123_occupancy_state"
+    assert entity.unique_id == "entry-123_controller_state"
     assert entity.name == "State"
     assert entity.entity_category == EntityCategory.DIAGNOSTIC
     assert entity.has_entity_name is True
@@ -47,7 +47,7 @@ def test_occupancy_state_sensor_native_value_and_attributes(hass):
             }
         ),
     )
-    entity = SmartifyOccupancyStateSensor(controller, OCCUPANCY_STATE_DESCRIPTION)
+    entity = SmartifyControllerStateSensor(controller, CONTROLLER_STATE_DESCRIPTION)
 
     assert entity.native_value == "unoccupied"
     assert entity.extra_state_attributes["strategy"] == "trigger_and_sustain"
