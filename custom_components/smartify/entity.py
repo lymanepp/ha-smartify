@@ -34,6 +34,7 @@ class SmartifyEntity(Entity):
             name=controller.config_entry.title,
             manufacturer=NAME,
         )
+
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""
         await self._set_sw_version()

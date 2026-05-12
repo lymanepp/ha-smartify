@@ -61,4 +61,8 @@ class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, object]:
         """Return diagnostic attributes for the controller state machine."""
-        return self.controller.diagnostic_attributes if hasattr(self.controller, 'diagnostic_attributes') else {}
+        return (
+            self.controller.diagnostic_attributes
+            if hasattr(self.controller, "diagnostic_attributes")
+            else {}
+        )

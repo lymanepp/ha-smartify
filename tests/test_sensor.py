@@ -4,7 +4,10 @@ from homeassistant.const import EntityCategory, STATE_ON
 
 from custom_components.smartify.const import Config
 from custom_components.smartify.occupancy_controller import OccupancyController
-from custom_components.smartify.sensor import SmartifyControllerStateSensor, CONTROLLER_STATE_DESCRIPTION
+from custom_components.smartify.sensor import (
+    SmartifyControllerStateSensor,
+    CONTROLLER_STATE_DESCRIPTION,
+)
 
 
 def _entry(data: dict | None = None):
@@ -28,6 +31,7 @@ def test_occupancy_state_sensor_uses_diagnostic_suffix(hass):
     assert entity.name == "State"
     assert entity.entity_category == EntityCategory.DIAGNOSTIC
     assert entity.has_entity_name is True
+
 
 def test_occupancy_state_sensor_native_value_and_attributes(hass):
     trigger = "binary_sensor.office_pir"
