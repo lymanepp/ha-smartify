@@ -15,11 +15,10 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers.template import is_number
 
 from .const import _LOGGER, ON_OFF_STATES, Config
 from .smartify_controller import SmartifyController
-from .util import remove_empty
+from .util import is_number, remove_empty
 
 
 class MyState(enum.StrEnum):

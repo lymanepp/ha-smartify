@@ -1,7 +1,8 @@
 """Utility functions."""
 
 from collections.abc import Iterable
-from math import e
+import math
+from typing import Any
 
 from homeassistant import util
 from homeassistant.const import (
@@ -25,7 +26,13 @@ def absolute_humidity(temp: tuple[float, str], hum: float) -> float:
 
     t_c = TemperatureConverter.convert(*temp, UnitOfTemperature.CELSIUS)
 
-    return hum * 6.112 * 2.1674 * e ** ((t_c * 17.67) / (t_c + 243.5)) / (t_c + 273.15)
+    return (
+        hum
+        * 6.112
+        * 2.1674
+        * math.e ** ((t_c * 17.67) / (t_c + 243.5))
+        / (t_c + 273.15)
+    )
 
 
 def summer_simmer_index(
@@ -149,3 +156,13 @@ def on_off_entities(
                 entity_ids.add(state.entity_id)
 
     return entity_ids
+
+
+def is_number(value: Any) -> bool:
+    """Try to convert value to a finite float."""
+    try:
+        fvalue = float(value)
+    except (ValueError, TypeError):
+        return False
+
+    return math.isfinite(fvalue)

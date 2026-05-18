@@ -43,8 +43,10 @@ exclude = ["custom_components/virtual"]
 [lint.flake8-pytest-style]
 fixture-parentheses = false
 
-#[pyupgrade]
-#keep-runtime-typing = true
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+combine-as-imports = true
+split-on-trailing-comma = false
 
 [lint.mccabe]
 max-complexity = 25
