@@ -42,16 +42,11 @@ async def test_duplicate_reload_replaces_old_controller(
 
 
 @pytest.mark.asyncio
-async def test_unload_without_stored_controller_does_not_raise(
+async def test_unload_calls_controller_unload_when_present(
     hass: HomeAssistant,
 ):
-    """Unloading when no controller was stored must not raise KeyError.
-
-    Regression test for hass.data[DOMAIN].pop(entry_id) failing when the entry
-    was never inserted (e.g. setup failed midway, or a double-unload).
-    """
+    """When runtime_data holds a controller, unload must release it."""
     from custom_components.smartify import async_unload_entry
-    from custom_components.smartify.const import DOMAIN
 
     entry = MockConfigEntry(
         domain="smartify",
@@ -59,8 +54,9 @@ async def test_unload_without_stored_controller_does_not_raise(
     )
     entry.add_to_hass(hass)
 
-    # Ensure the domain bucket exists but contains no controller for this entry.
-    hass.data.setdefault(DOMAIN, {})
+    controller = MagicMock()
+    controller.async_unload = MagicMock()
+    entry.runtime_data = controller
 
     with patch.object(
         hass.config_entries,
@@ -70,15 +66,15 @@ async def test_unload_without_stored_controller_does_not_raise(
         result = await async_unload_entry(hass, entry)
 
     assert result is True
+    controller.async_unload.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_unload_with_missing_domain_bucket_does_not_raise(
+async def test_failed_unload_does_not_release_controller(
     hass: HomeAssistant,
 ):
-    """Unloading when the DOMAIN bucket is absent entirely must not raise."""
+    """If platform unload fails, the controller must be left intact."""
     from custom_components.smartify import async_unload_entry
-    from custom_components.smartify.const import DOMAIN
 
     entry = MockConfigEntry(
         domain="smartify",
@@ -86,13 +82,16 @@ async def test_unload_with_missing_domain_bucket_does_not_raise(
     )
     entry.add_to_hass(hass)
 
-    hass.data.pop(DOMAIN, None)
+    controller = MagicMock()
+    controller.async_unload = MagicMock()
+    entry.runtime_data = controller
 
     with patch.object(
         hass.config_entries,
         "async_unload_platforms",
-        AsyncMock(return_value=True),
+        AsyncMock(return_value=False),
     ):
         result = await async_unload_entry(hass, entry)
 
-    assert result is True
+    assert result is False
+    controller.async_unload.assert_not_called()

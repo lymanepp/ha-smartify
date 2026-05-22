@@ -7,10 +7,10 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, Config, ControllerType
+from . import SmartifyConfigEntry
+from .const import Config, ControllerType
 from .entity import SmartifyEntity
 from .smartify_controller import SmartifyController
 
@@ -24,10 +24,12 @@ ENTITY_DESCRIPTIONS = [
 
 
 async def async_setup_entry(
-    hass, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass,
+    config_entry: SmartifyConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ):
     """Set up the sensor platform."""
-    controller = hass.data[DOMAIN][config_entry.entry_id]
+    controller = config_entry.runtime_data
     type_ = config_entry.data[Config.CONTROLLER_TYPE]
 
     async_add_entities(

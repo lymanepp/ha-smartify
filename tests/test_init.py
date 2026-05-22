@@ -31,6 +31,9 @@ async def test_async_setup_entry(
 
         controller.async_setup.assert_awaited_once()
 
+        # Controller is stored on the entry's runtime_data, not hass.data.
+        assert entry.runtime_data is controller
+
 
 @pytest.mark.asyncio
 async def test_async_unload_entry(

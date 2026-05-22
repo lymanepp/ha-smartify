@@ -11,7 +11,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import CoreState, Event, HomeAssistant
 
 from .ceiling_fan_controller import CeilingFanController
-from .const import DOMAIN, Config, ControllerType
+from .const import Config, ControllerType
 from .exhaust_fan_controller import ExhaustFanController
 from .light_controller import LightController
 from .occupancy_controller import OccupancyController
@@ -19,19 +19,21 @@ from .smartify_controller import SmartifyController
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
+# Config entry with the controller stored on runtime_data. Using runtime_data
+# (HA 2024.5+) keeps controller state scoped to the entry and cleared on unload,
+# replacing the manual hass.data[DOMAIN][entry_id] bookkeeping.
+type SmartifyConfigEntry = ConfigEntry[SmartifyController]
+
 
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry: SmartifyConfigEntry
+) -> bool:
     """Set up this integration using UI."""
-    domain_data = hass.data.setdefault(DOMAIN, {})
-
     if (controller := _create_controller(hass, config_entry)) is None:
         return False
 
-    if old_controller := domain_data.pop(config_entry.entry_id, None):
-        old_controller.async_unload()
-
-    domain_data[config_entry.entry_id] = controller
+    config_entry.runtime_data = controller
 
     async def start_controller(_: Event | None = None):
         await controller.async_setup(hass)
@@ -47,21 +49,21 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, config_entry: SmartifyConfigEntry
+) -> bool:
     """Handle removal of an entry."""
     if unloaded := await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
     ):
-        controller: SmartifyController | None = hass.data.get(DOMAIN, {}).pop(
-            config_entry.entry_id, None
-        )
-        if controller is not None:
-            controller.async_unload()
+        config_entry.runtime_data.async_unload()
 
     return unloaded
 
 
-async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+async def async_reload_entry(
+    hass: HomeAssistant, config_entry: SmartifyConfigEntry
+) -> None:
     """Reload config entry."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
@@ -70,7 +72,7 @@ async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
 
 
 def _create_controller(
-    hass: HomeAssistant, config_entry: ConfigEntry
+    hass: HomeAssistant, config_entry: SmartifyConfigEntry
 ) -> SmartifyController | None:
     type_ = config_entry.data[Config.CONTROLLER_TYPE]
     match type_:

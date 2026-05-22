@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.smartify.smartify_controller import SmartifyController
 
-from .const import DOMAIN
+from . import SmartifyConfigEntry
 from .entity import SmartifyEntity
 
 CONTROLLER_STATE_DESCRIPTION = SensorEntityDescription(
@@ -21,10 +20,12 @@ CONTROLLER_STATE_DESCRIPTION = SensorEntityDescription(
 
 
 async def async_setup_entry(
-    hass, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass,
+    config_entry: SmartifyConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    controller = hass.data[DOMAIN][config_entry.entry_id]
+    controller = config_entry.runtime_data
 
     if isinstance(controller, SmartifyController):
         async_add_entities(
