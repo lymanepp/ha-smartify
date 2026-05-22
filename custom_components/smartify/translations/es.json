@@ -93,10 +93,14 @@
       "motion_needs_minutes": "Los sensores de movimiento requieren que se especifique 'apagar después de'.",
       "occupancy_and_auto_off": "El sensor de ocupación y el apagado automático no pueden usarse juntos.",
       "occupancy_needs_trigger": "Debe especificar sensores de movimiento y/u otras entidades.",
-      "off_minutes_required": "Se requiere 'apagar después de minutos'."
+      "off_minutes_required": "Se requiere 'apagar después de minutos'.",
+      "occupancy_needs_entity": "Especifique al menos una entidad de activación o de mantenimiento.",
+      "trigger_only_needs_minutes": "La ocupación solo por activación requiere un tiempo de decaimiento porque no hay entidades de mantenimiento configuradas."
     },
     "abort": {
-      "nothing_to_control": "No hay entidades disponibles para controlar"
+      "nothing_to_control": "No hay entidades disponibles para controlar",
+      "invalid_entity": "La entidad seleccionada ya no está disponible.",
+      "invalid_type": "Tipo de controlador desconocido."
     }
   },
   "options": {
@@ -163,8 +167,13 @@
       "door_needs_motion": "Los sensores de puerta requieren que se especifiquen sensores de movimiento.",
       "motion_needs_minutes": "Los sensores de movimiento requieren que se especifique 'apagar después de'.",
       "occupancy_needs_trigger": "Debe especificar sensores de movimiento y/u otras entidades.",
-      "off_minutes_required": "Se requiere 'apagar después de minutos'."
+      "off_minutes_required": "Se requiere 'apagar después de minutos'.",
+      "occupancy_needs_entity": "Especifique al menos una entidad de activación o de mantenimiento.",
+      "trigger_only_needs_minutes": "La ocupación solo por activación requiere un tiempo de decaimiento porque no hay entidades de mantenimiento configuradas."
     },
-    "abort": {}
+    "abort": {
+      "invalid_entity": "La entidad seleccionada ya no está disponible.",
+      "invalid_type": "Tipo de controlador desconocido."
+    }
   }
 }

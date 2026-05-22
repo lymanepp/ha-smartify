@@ -10,7 +10,14 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
-from homeassistant.core import CALLBACK_TYPE, Context, Event, HomeAssistant, State
+from homeassistant.core import (
+    CALLBACK_TYPE,
+    Context,
+    Event,
+    HomeAssistant,
+    State,
+    callback,
+)
 from homeassistant.helpers.event import (
     async_track_point_in_utc_time,
     async_track_state_change_event,
@@ -194,13 +201,18 @@ class SmartifyController(ABC):
         if period is None:
             return
 
+        @callback
         def timer_expired(_: datetime) -> None:
             self._timer_unsub = None
 
             if self._shutting_down:
                 return
 
-            self.hass.async_create_task(self.on_timer_expired())
+            # Use the thread-safe wrapper so this is correct regardless of which
+            # thread the timer fires on. hass.create_task schedules onto the loop
+            # via call_soon_threadsafe when invoked off-loop, unlike
+            # hass.async_create_task which must only be called from the loop.
+            self.hass.create_task(self.on_timer_expired())
 
         self._timer_unsub = async_track_point_in_utc_time(
             self.hass,

@@ -141,17 +141,56 @@ async def test_sustain_only_sustain_on_enters_sustained_occupied_without_decay_t
 
 
 @pytest.mark.asyncio
-async def test_sustain_only_all_sustains_off_exits_sustained_occupied_immediately(
+async def test_sustain_only_all_sustains_off_starts_grace_timer_then_exits(
     hass: HomeAssistant,
 ):
+    """Last sustain off starts the decay grace timer; exit only on expiry."""
     sustain = "binary_sensor.office_mmwave"
-    controller = OccupancyController(hass, _entry({Config.SUSTAIN_ENTITIES: [sustain]}))
+    controller = OccupancyController(
+        hass, _entry({Config.SUSTAIN_ENTITIES: [sustain], Config.DECAY_MINUTES: 1})
+    )
 
     await _set_and_notify(hass, controller, sustain, STATE_ON)
     await _set_and_notify(hass, controller, sustain, STATE_OFF)
 
+    # Does not exit immediately; grace timer is running.
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.is_on is True
+    assert controller._timer_unsub is not None
+
+    # Grace period expires with no sustain active -> exit.
+    await controller.fire_event(MyEvent.TIMER)
+
     assert controller.state == MyState.UNOCCUPIED
     assert controller.is_on is False
+
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_sustain_only_returns_during_grace_cancels_timer(
+    hass: HomeAssistant,
+):
+    """A sustain returning during the grace period cancels the timer."""
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass, _entry({Config.SUSTAIN_ENTITIES: [sustain], Config.DECAY_MINUTES: 1})
+    )
+
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller._timer_unsub is not None
+
+    # Sustain comes back before the timer expires.
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.is_on is True
+    assert controller._timer_unsub is None
+
+    controller.async_unload()
 
 
 @pytest.mark.asyncio
@@ -274,7 +313,7 @@ async def test_hybrid_sustain_on_while_triggered_transitions_to_sustained_and_ca
 
 
 @pytest.mark.asyncio
-async def test_hybrid_sustained_occupied_exits_when_all_sustains_turn_off(
+async def test_hybrid_sustained_occupied_starts_grace_timer_when_sustains_turn_off(
     hass: HomeAssistant,
 ):
     trigger = "binary_sensor.office_pir"
@@ -294,8 +333,17 @@ async def test_hybrid_sustained_occupied_exits_when_all_sustains_turn_off(
     await _set_and_notify(hass, controller, sustain, STATE_ON)
     await _set_and_notify(hass, controller, sustain, STATE_OFF)
 
+    # Grace timer started; still occupied until it expires.
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.is_on is True
+    assert controller._timer_unsub is not None
+
+    await controller.fire_event(MyEvent.TIMER)
+
     assert controller.state == MyState.UNOCCUPIED
     assert controller.is_on is False
+
+    controller.async_unload()
 
 
 @pytest.mark.asyncio
@@ -499,3 +547,99 @@ async def test_sustain_only_required_update_enters_when_sustain_active_and_requi
 
     assert controller.state == MyState.SUSTAINED_OCCUPIED
     assert controller.is_on is True
+
+
+@pytest.mark.asyncio
+async def test_sustained_grace_exits_immediately_when_required_becomes_invalid(
+    hass: HomeAssistant,
+):
+    """Requirements are a hard gate even during the sustained grace period."""
+    sustain = "binary_sensor.office_mmwave"
+    required = "binary_sensor.required"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.SUSTAIN_ENTITIES: [sustain],
+                Config.REQUIRED_ON_ENTITIES: [required],
+                Config.DECAY_MINUTES: 1,
+            }
+        ),
+    )
+
+    await _set_and_notify(hass, controller, required, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+
+    # Sustain drops -> grace timer running, still occupied.
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller._timer_unsub is not None
+
+    # Required condition fails -> immediate exit, timer cancelled.
+    await _set_and_notify(hass, controller, required, STATE_OFF)
+    assert controller.state == MyState.UNOCCUPIED
+    assert controller.is_on is False
+    assert controller._timer_unsub is None
+
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_sustained_grace_timer_not_restarted_on_repeated_events(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Repeated SUSTAIN/REQUIRED events during grace must not extend the window."""
+    sustain = "binary_sensor.office_mmwave"
+    other = "binary_sensor.office_mmwave2"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.SUSTAIN_ENTITIES: [sustain, other],
+                Config.DECAY_MINUTES: 1,
+            }
+        ),
+    )
+
+    # Enter sustained via one sustain, then both off.
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller._timer_unsub is not None
+
+    # Now track timer calls; a second sustain reporting OFF while already in the
+    # grace window must not call set_timer again.
+    timer_calls = _track_timer_calls(monkeypatch, controller)
+    await _set_and_notify(hass, controller, other, STATE_OFF)
+
+    assert timer_calls == []
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_sustained_grace_timer_handoff_if_sustain_active_at_expiry(
+    hass: HomeAssistant,
+):
+    """If a sustain is active when the grace timer fires, stay sustained."""
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass, _entry({Config.SUSTAIN_ENTITIES: [sustain], Config.DECAY_MINUTES: 1})
+    )
+
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+
+    # Sustain is physically back on but its event was missed; the timer fires.
+    hass.states.async_set(sustain, STATE_ON)
+    await controller.fire_event(MyEvent.TIMER)
+
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.is_on is True
+
+    controller.async_unload()

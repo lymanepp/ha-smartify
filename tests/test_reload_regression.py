@@ -39,3 +39,60 @@ async def test_duplicate_reload_replaces_old_controller(
         )
 
         old_controller.async_unload.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_unload_without_stored_controller_does_not_raise(
+    hass: HomeAssistant,
+):
+    """Unloading when no controller was stored must not raise KeyError.
+
+    Regression test for hass.data[DOMAIN].pop(entry_id) failing when the entry
+    was never inserted (e.g. setup failed midway, or a double-unload).
+    """
+    from custom_components.smartify import async_unload_entry
+    from custom_components.smartify.const import DOMAIN
+
+    entry = MockConfigEntry(
+        domain="smartify",
+        data={},
+    )
+    entry.add_to_hass(hass)
+
+    # Ensure the domain bucket exists but contains no controller for this entry.
+    hass.data.setdefault(DOMAIN, {})
+
+    with patch.object(
+        hass.config_entries,
+        "async_unload_platforms",
+        AsyncMock(return_value=True),
+    ):
+        result = await async_unload_entry(hass, entry)
+
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_unload_with_missing_domain_bucket_does_not_raise(
+    hass: HomeAssistant,
+):
+    """Unloading when the DOMAIN bucket is absent entirely must not raise."""
+    from custom_components.smartify import async_unload_entry
+    from custom_components.smartify.const import DOMAIN
+
+    entry = MockConfigEntry(
+        domain="smartify",
+        data={},
+    )
+    entry.add_to_hass(hass)
+
+    hass.data.pop(DOMAIN, None)
+
+    with patch.object(
+        hass.config_entries,
+        "async_unload_platforms",
+        AsyncMock(return_value=True),
+    ):
+        result = await async_unload_entry(hass, entry)
+
+    assert result is True

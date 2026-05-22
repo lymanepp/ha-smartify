@@ -52,8 +52,11 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     if unloaded := await hass.config_entries.async_unload_platforms(
         config_entry, PLATFORMS
     ):
-        controller: SmartifyController = hass.data[DOMAIN].pop(config_entry.entry_id)
-        controller.async_unload()
+        controller: SmartifyController | None = hass.data.get(DOMAIN, {}).pop(
+            config_entry.entry_id, None
+        )
+        if controller is not None:
+            controller.async_unload()
 
     return unloaded
 

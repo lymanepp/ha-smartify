@@ -69,7 +69,11 @@ class OccupancyController(SmartifyController):
       sustained_occupied and cancels the decay timer.
     * If the trigger decay timer expires before any sustain turns on, occupancy
       exits to unoccupied.
-    * In sustained_occupied, occupancy exits when all sustain entities are off.
+    * In sustained_occupied, when all sustain entities turn off the controller
+      starts a decay timer (reusing decay_minutes) rather than exiting at once;
+      occupancy exits only if the timer expires before a sustain returns. A
+      sustain turning back on cancels the timer and keeps occupancy. A failed
+      required condition still exits immediately.
     * If no triggers are configured, any sustain turning on enters
       sustained_occupied, and occupancy follows the sustain entities directly.
     """
@@ -88,6 +92,9 @@ class OccupancyController(SmartifyController):
         self._last_sustain_entity: str | None = None
         self._last_required_entity: str | None = None
 
+        # Defaults to 1 minute when unset. The config flow requires a decay time
+        # for trigger-only setups; for trigger+sustain the timer only provides a
+        # defensive handoff, so a benign default is acceptable there.
         self._decay_minutes = self.data.get(Config.DECAY_MINUTES, 1)
         self._trigger_decay_period = timedelta(minutes=self._decay_minutes)
 
@@ -225,13 +232,29 @@ class OccupancyController(SmartifyController):
         self.set_state(MyState.SUSTAINED_OCCUPIED)
 
     def _reevaluate_sustained_occupied_state(self) -> None:
-        """Stay sustained while requirements and at least one sustain are active."""
+        """Re-evaluate sustained occupancy after a sustain or required change.
+
+        Requirements are a hard gate: if they are no longer satisfied, exit
+        immediately. Otherwise, if no sustain is currently active, do not exit
+        immediately -- start (or keep) the decay timer so a briefly-dropping
+        sustain sensor does not lose occupancy. If a sustain is active again,
+        cancel any pending decay timer and stay sustained.
+        """
         if not self._have_required():
             self._enter_unoccupied_state()
             return
 
-        if not self._have_active_sustain():
-            self._enter_unoccupied_state()
+        if self._have_active_sustain():
+            # A sustain is (still) active: cancel any pending grace timer.
+            self.set_timer(None)
+            return
+
+        # No sustain active but requirements hold: start the grace timer if one
+        # is not already running. set_timer restarts on every call, so only set
+        # it when there is no active timer to avoid extending the grace window on
+        # repeated SUSTAIN/REQUIRED events.
+        if self._timer_unsub is None:
+            self.set_timer(self._trigger_decay_period)
 
     async def on_event(self, event: MyEvent) -> None:
         """Handle controller events."""
@@ -288,6 +311,14 @@ class OccupancyController(SmartifyController):
 
             case (MyState.SUSTAINED_OCCUPIED, MyEvent.REQUIRED):
                 self._reevaluate_sustained_occupied_state()
+
+            case (MyState.SUSTAINED_OCCUPIED, MyEvent.TIMER):
+                # Grace period expired. Exit unless a sustain returned (and its
+                # event was missed) or requirements changed in the meantime.
+                if self._have_required() and self._have_active_sustain():
+                    self._enter_sustained_occupied_state()
+                else:
+                    self._enter_unoccupied_state()
 
             case _:
                 _LOGGER.debug(

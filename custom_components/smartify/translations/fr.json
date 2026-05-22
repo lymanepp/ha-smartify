@@ -93,10 +93,14 @@
       "motion_needs_minutes": "Les détecteurs de mouvement nécessitent que 'éteindre après' soit spécifié.",
       "occupancy_and_auto_off": "Le capteur d'occupation et l'arrêt automatique ne peuvent pas être utilisés ensemble.",
       "occupancy_needs_trigger": "Vous devez spécifier des détecteurs de mouvement et/ou d'autres entités.",
-      "off_minutes_required": "'Éteindre après quelques minutes' est requis."
+      "off_minutes_required": "'Éteindre après quelques minutes' est requis.",
+      "occupancy_needs_entity": "Spécifiez au moins une entité de déclenchement ou de maintien.",
+      "trigger_only_needs_minutes": "L'occupation par déclenchement seul nécessite un délai de décroissance car aucune entité de maintien n'est configurée."
     },
     "abort": {
-      "nothing_to_control": "Aucune entité disponible à contrôler"
+      "nothing_to_control": "Aucune entité disponible à contrôler",
+      "invalid_entity": "L'entité sélectionnée n'est plus disponible.",
+      "invalid_type": "Type de contrôleur inconnu."
     }
   },
   "options": {
@@ -163,8 +167,13 @@
       "door_needs_motion": "Les capteurs de porte nécessitent des détecteurs de mouvement.",
       "motion_needs_minutes": "Les détecteurs de mouvement nécessitent que 'éteindre après' soit spécifié.",
       "occupancy_needs_trigger": "Vous devez spécifier des détecteurs de mouvement et/ou d'autres entités.",
-      "off_minutes_required": "'Éteindre après quelques minutes' est requis."
+      "off_minutes_required": "'Éteindre après quelques minutes' est requis.",
+      "occupancy_needs_entity": "Spécifiez au moins une entité de déclenchement ou de maintien.",
+      "trigger_only_needs_minutes": "L'occupation par déclenchement seul nécessite un délai de décroissance car aucune entité de maintien n'est configurée."
     },
-    "abort": {}
+    "abort": {
+      "invalid_entity": "L'entité sélectionnée n'est plus disponible.",
+      "invalid_type": "Type de contrôleur inconnu."
+    }
   }
 }

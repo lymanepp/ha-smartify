@@ -94,7 +94,9 @@
       "trigger_only_needs_minutes": "Trigger-only occupancy requires a decay time because no sustain entities are configured."
     },
     "abort": {
-      "nothing_to_control": "No entities are available to control"
+      "nothing_to_control": "No entities are available to control",
+      "invalid_entity": "The selected entity is no longer available.",
+      "invalid_type": "Unknown controller type."
     }
   },
   "options": {
@@ -161,6 +163,9 @@
       "occupancy_needs_entity": "Specify at least one trigger entity or sustain entity.",
       "trigger_only_needs_minutes": "Trigger-only occupancy requires a decay time because no sustain entities are configured."
     },
-    "abort": {}
+    "abort": {
+      "invalid_entity": "The selected entity is no longer available.",
+      "invalid_type": "Unknown controller type."
+    }
   }
 }

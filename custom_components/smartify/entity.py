@@ -3,13 +3,35 @@
 from __future__ import annotations
 
 from homeassistant.const import ATTR_SW_VERSION
-from homeassistant.core import callback
-from homeassistant.helpers.device_registry import DeviceEntryType
-from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import Entity
 from homeassistant.loader import async_get_custom_components
 
 from .const import DOMAIN, NAME
 from .smartify_controller import SmartifyController
+
+# The integration version is static for the lifetime of the process, so resolve
+# it at most once and share it across every entity instead of calling
+# async_get_custom_components for each entity that is added.
+_VERSION_CACHE: str | None = None
+_VERSION_RESOLVED = False
+
+
+async def _async_get_version(hass: HomeAssistant) -> str | None:
+    """Return the integration version, resolving and caching it once."""
+    global _VERSION_CACHE, _VERSION_RESOLVED  # noqa: PLW0603
+
+    if _VERSION_RESOLVED:
+        return _VERSION_CACHE
+
+    custom_components = await async_get_custom_components(hass)
+    integration = custom_components.get(DOMAIN)
+    version = integration.version if integration else None
+    _VERSION_CACHE = version.string if version else None
+    _VERSION_RESOLVED = True
+
+    return _VERSION_CACHE
 
 
 class SmartifyEntity(Entity):
@@ -50,8 +72,14 @@ class SmartifyEntity(Entity):
         self.async_write_ha_state()
 
     async def _set_sw_version(self) -> None:
-        assert self.device_info
+        """Populate sw_version on the DeviceInfo before the device is registered.
 
-        custom_components = await async_get_custom_components(self.hass)
-        if version := custom_components[DOMAIN].version:
-            self.device_info[ATTR_SW_VERSION] = version.string
+        This runs in async_added_to_hass, before the entity is fully added, so the
+        value is read when the device registry entry is created/updated. Mutating
+        device_info after registration would not propagate.
+        """
+        if self._attr_device_info is None:
+            return
+
+        if version := await _async_get_version(self.hass):
+            self._attr_device_info[ATTR_SW_VERSION] = version

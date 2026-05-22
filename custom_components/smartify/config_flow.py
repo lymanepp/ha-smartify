@@ -466,7 +466,7 @@ def _validate_occupancy(user_input: ConfigType, errors: ErrorsType) -> bool:
         return False
 
     if trigger_entities and not sustain_entities and not decay_minutes:
-        errors["base"] = "trigger_only_needs_decay"
+        errors["base"] = "trigger_only_needs_minutes"
         return False
 
     return True

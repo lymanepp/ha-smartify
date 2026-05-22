@@ -93,10 +93,14 @@
       "motion_needs_minutes": "Bewegungssensoren erfordern die Angabe von 'Ausschalten nach'.",
       "occupancy_and_auto_off": "Belegungssensor und automatisches Ausschalten können nicht zusammen verwendet werden.",
       "occupancy_needs_trigger": "Bewegungssensoren und/oder andere Entitäten müssen angegeben werden.",
-      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich."
+      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich.",
+      "occupancy_needs_entity": "Geben Sie mindestens eine Trigger- oder Sustain-Entität an.",
+      "trigger_only_needs_minutes": "Trigger-only-Belegung erfordert eine Abklingzeit, da keine Sustain-Entitäten konfiguriert sind."
     },
     "abort": {
-      "nothing_to_control": "Keine steuerbaren Entitäten verfügbar"
+      "nothing_to_control": "Keine steuerbaren Entitäten verfügbar",
+      "invalid_entity": "Die ausgewählte Entität ist nicht mehr verfügbar.",
+      "invalid_type": "Unbekannter Controller-Typ."
     }
   },
   "options": {
@@ -163,8 +167,13 @@
       "door_needs_motion": "Türsensoren erfordern angegebene Bewegungssensoren.",
       "motion_needs_minutes": "Bewegungssensoren erfordern die Angabe von 'Ausschalten nach'.",
       "occupancy_needs_trigger": "Bewegungssensoren und/oder andere Entitäten müssen angegeben werden.",
-      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich."
+      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich.",
+      "occupancy_needs_entity": "Geben Sie mindestens eine Trigger- oder Sustain-Entität an.",
+      "trigger_only_needs_minutes": "Trigger-only-Belegung erfordert eine Abklingzeit, da keine Sustain-Entitäten konfiguriert sind."
     },
-    "abort": {}
+    "abort": {
+      "invalid_entity": "Die ausgewählte Entität ist nicht mehr verfügbar.",
+      "invalid_type": "Unbekannter Controller-Typ."
+    }
   }
 }

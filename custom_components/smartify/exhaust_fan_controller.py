@@ -84,6 +84,9 @@ class ExhaustFanController(SmartifyController):
 
     async def on_state_change(self, state: State) -> None:
         """Handle entity state changes from base."""
+        # NOTE: these are dotted names, so they are *value* patterns (compared
+        # against state.entity_id), not capture patterns. Do not replace any of
+        # these with a bare name or it will silently match everything.
         match state.entity_id:
             case self.controlled_entity if state.state in ON_OFF_STATES:
                 await self.fire_event(

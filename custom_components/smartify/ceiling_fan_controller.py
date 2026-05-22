@@ -93,10 +93,9 @@ class CeilingFanController(SmartifyController):
         await super().async_setup(hass)
 
         _LOGGER.debug(
-            "%s; registering state listener controller=%s tracked=%s",
+            "%s; registering poll timer controller=%s interval=60s",
             self.name,
             id(self),
-            self.tracked_entity_ids,
         )
 
         self._unsubscribers.append(
