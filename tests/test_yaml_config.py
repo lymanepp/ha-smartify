@@ -15,7 +15,12 @@ from custom_components.smartify.occupancy_controller import OccupancyController
 
 
 def _yaml_controllers(hass):
-    return hass.data.get(DOMAIN, {}).get(DATA_CONTROLLERS, {})
+    controllers = hass.data.get(DOMAIN, {}).get(DATA_CONTROLLERS, {})
+    return {
+        entry_id: controller
+        for entry_id, controller in controllers.items()
+        if entry_id.startswith("yaml_")
+    }
 
 
 @pytest.mark.asyncio

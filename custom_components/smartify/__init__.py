@@ -53,12 +53,21 @@ class YamlRuntime:
     entry_ids: list[str] = field(default_factory=list)
     platform_reloaders: list[YamlPlatformReloader] = field(default_factory=list)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    initialized: bool = False
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up native YAML controllers and the YAML reload action."""
     runtime = _yaml_runtime(hass)
-    await _async_replace_yaml_controllers(hass, config.get(DOMAIN, {}))
+    if runtime.initialized:
+        return True
+    runtime.initialized = True
+
+    try:
+        await _async_replace_yaml_controllers(hass, config.get(DOMAIN, {}))
+    except Exception:
+        runtime.initialized = False
+        raise
 
     # Load one YAML-backed instance of each entity platform even when the
     # current YAML is empty. This allows adding Smartify YAML later and using
@@ -137,7 +146,9 @@ async def async_setup_yaml_platform(
         nonlocal entities
 
         if entities:
-            await asyncio.gather(*(entity.async_remove() for entity in entities))
+            await asyncio.gather(
+                *(entity.async_remove() for entity in entities if entity.hass is not None)
+            )
 
         controllers = _controller_registry(hass)
         entities = [
