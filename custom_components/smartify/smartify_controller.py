@@ -170,11 +170,6 @@ class SmartifyController(ABC):
         """Return the status of the sensor."""
         return self._state == STATE_ON
 
-    @property
-    def diagnostic_attributes(self) -> dict[str, object]:
-        """Return controller-specific diagnostic attributes."""
-        return {}
-
     def is_entity_state(self, entity: str | None, value: Any) -> bool:
         """Compare the state of an entity. Return True if the value matches the state."""
 

@@ -4,6 +4,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.smartify import DATA_CONTROLLERS
 from custom_components.smartify.const import DOMAIN
 
 
@@ -33,7 +34,7 @@ async def test_async_setup_entry(
 
         controller.async_setup.assert_awaited_once()
 
-        assert hass.data[DOMAIN][entry.entry_id] is controller
+        assert hass.data[DOMAIN][DATA_CONTROLLERS][entry.entry_id] is controller
 
 
 @pytest.mark.asyncio
@@ -67,4 +68,4 @@ async def test_async_unload_entry(
         assert unload_result is True
 
         controller.async_unload.assert_called_once()
-        assert entry.entry_id not in hass.data[DOMAIN]
+        assert entry.entry_id not in hass.data[DOMAIN][DATA_CONTROLLERS]

@@ -8,14 +8,14 @@ controller and its entities exist purely in memory for the life of the HA run.
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.smartify import async_setup
+from custom_components.smartify import DATA_CONTROLLERS, async_setup
 from custom_components.smartify.const import DOMAIN, Config, ControllerType
 from custom_components.smartify.light_controller import LightController
 from custom_components.smartify.occupancy_controller import OccupancyController
 
 
 def _yaml_controllers(hass):
-    return hass.data.get(DOMAIN, {})
+    return hass.data.get(DOMAIN, {}).get(DATA_CONTROLLERS, {})
 
 
 @pytest.mark.asyncio
@@ -296,3 +296,123 @@ async def test_yaml_auto_off_only_light_from_converted_config(hass):
     assert isinstance(controller, LightController)
     assert controller.trigger_entity is None
     assert controller.config_entry.data[Config.AUTO_OFF_MINUTES] == 5
+
+
+@pytest.mark.asyncio
+async def test_yaml_reload_replaces_only_yaml_controllers(hass):
+    """smartify.reload replaces YAML controllers and leaves UI entries alone."""
+    from unittest.mock import patch
+
+    from homeassistant.const import SERVICE_RELOAD
+
+    ui_entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="UI Light",
+        unique_id=f"{DOMAIN}__light_ui_light",
+        data={
+            Config.CONTROLLER_TYPE: ControllerType.LIGHT,
+            Config.CONTROLLED_ENTITY: "light.ui_light",
+        },
+    )
+    ui_entry.add_to_hass(hass)
+
+    initial_config = {
+        DOMAIN: {
+            "light": [
+                {
+                    Config.UNIQUE_ID: "yaml_first",
+                    Config.CONTROLLED_ENTITY: "light.first",
+                }
+            ]
+        }
+    }
+    reloaded_config = {
+        DOMAIN: {
+            "light": [
+                {
+                    Config.UNIQUE_ID: "yaml_second",
+                    Config.CONTROLLED_ENTITY: "light.second",
+                }
+            ]
+        }
+    }
+
+    assert await async_setup(hass, initial_config) is True
+    await hass.async_block_till_done()
+    old_controller = _yaml_controllers(hass)["yaml_yaml_first"]
+
+    with (
+        patch(
+            "custom_components.smartify.reload_helper.async_integration_yaml_config",
+            return_value=reloaded_config,
+        ),
+        patch.object(old_controller, "async_unload", wraps=old_controller.async_unload) as unload,
+    ):
+        await hass.services.async_call(DOMAIN, SERVICE_RELOAD, blocking=True)
+
+    controllers = _yaml_controllers(hass)
+    assert "yaml_yaml_first" not in controllers
+    assert "yaml_yaml_second" in controllers
+    assert unload.call_count == 1
+    assert hass.config_entries.async_entries(DOMAIN) == [ui_entry]
+
+
+@pytest.mark.asyncio
+async def test_yaml_reload_can_remove_all_yaml_controllers(hass):
+    """Reloading after removing the YAML section unloads all YAML controllers."""
+    from unittest.mock import patch
+
+    from homeassistant.const import SERVICE_RELOAD
+
+    config = {
+        DOMAIN: {
+            "occupancy": [
+                {
+                    Config.SENSOR_NAME: "Office Occupancy",
+                    Config.SUSTAIN_ENTITIES: ["binary_sensor.office_presence"],
+                }
+            ]
+        }
+    }
+
+    assert await async_setup(hass, config) is True
+    await hass.async_block_till_done()
+    assert _yaml_controllers(hass)
+
+    with patch(
+        "custom_components.smartify.reload_helper.async_integration_yaml_config",
+        return_value={},
+    ):
+        await hass.services.async_call(DOMAIN, SERVICE_RELOAD, blocking=True)
+
+    assert _yaml_controllers(hass) == {}
+
+
+@pytest.mark.asyncio
+async def test_yaml_reload_service_is_available_without_initial_yaml(hass):
+    """YAML may be added later and loaded without restarting Home Assistant."""
+    from unittest.mock import patch
+
+    from homeassistant.const import SERVICE_RELOAD
+
+    assert await async_setup(hass, {}) is True
+    await hass.async_block_till_done()
+    assert hass.services.has_service(DOMAIN, SERVICE_RELOAD)
+
+    reloaded_config = {
+        DOMAIN: {
+            "light": [
+                {
+                    Config.UNIQUE_ID: "later",
+                    Config.CONTROLLED_ENTITY: "light.added_later",
+                }
+            ]
+        }
+    }
+    with patch(
+        "custom_components.smartify.reload_helper.async_integration_yaml_config",
+        return_value=reloaded_config,
+    ):
+        await hass.services.async_call(DOMAIN, SERVICE_RELOAD, blocking=True)
+
+    assert "yaml_later" in _yaml_controllers(hass)

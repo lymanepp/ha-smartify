@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from . import get_controller
+from . import get_controller, async_setup_yaml_platform
 from .const import DOMAIN, Config, ControllerType
 from .entity import SmartifyEntity
 from .smartify_controller import SmartifyController
@@ -50,7 +50,8 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the binary sensor platform for a UI-created config entry."""
-    if controller := get_controller(hass, config_entry.entry_id):
+    controller = get_controller(hass, config_entry.entry_id)
+    if isinstance(controller, SmartifyController):
         async_add_entities(_binary_sensors_for_controller(controller))
 
 
@@ -69,12 +70,12 @@ async def async_setup_platform(
     if discovery_info is None:
         return
 
-    entities: list[SmartifyBinarySensor] = []
-    for entry_id in discovery_info["entry_ids"]:
-        if (controller := get_controller(hass, entry_id)) is not None:
-            entities.extend(_binary_sensors_for_controller(controller))
-
-    async_add_entities(entities)
+    await async_setup_yaml_platform(
+        hass,
+        discovery_info["entry_ids"],
+        async_add_entities,
+        _binary_sensors_for_controller,
+    )
 
 
 class SmartifyBinarySensor(SmartifyEntity, BinarySensorEntity):

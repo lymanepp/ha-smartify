@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
-from . import get_controller
+from . import get_controller, async_setup_yaml_platform
 from .smartify_controller import SmartifyController
 from .const import DOMAIN
 from .entity import SmartifyEntity
@@ -22,14 +22,30 @@ CONTROLLER_STATE_DESCRIPTION = SensorEntityDescription(
 )
 
 
+def _sensors_for_controller(
+    controller: SmartifyController,
+) -> list["SmartifyControllerStateSensor"]:
+    """Build the diagnostic sensor for one controller, regardless of whether
+    it came from a config entry (UI) or a YAML-configured entry.
+    """
+    return [
+        SmartifyControllerStateSensor(
+            controller=controller,
+            entity_description=CONTROLLER_STATE_DESCRIPTION,
+        )
+    ]
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform for a UI-created config entry."""
-    if controller := get_controller(hass, config_entry.entry_id):
-        async_add_entities([SmartifyControllerStateSensor(controller)])
+    controller = get_controller(hass, config_entry.entry_id)
+
+    if isinstance(controller, SmartifyController):
+        async_add_entities(_sensors_for_controller(controller))
 
 
 async def async_setup_platform(
@@ -47,22 +63,29 @@ async def async_setup_platform(
     if discovery_info is None:
         return
 
-    async_add_entities(
-        [
-            SmartifyControllerStateSensor(controller)
-            for entry_id in discovery_info["entry_ids"]
-            if (controller := get_controller(hass, entry_id)) is not None
-        ]
+    await async_setup_yaml_platform(
+        hass,
+        discovery_info["entry_ids"],
+        async_add_entities,
+        _sensors_for_controller,
     )
 
 
 class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
     """Diagnostic sensor exposing a controller's state machine state."""
 
-    def __init__(self, controller: SmartifyController) -> None:
+    def __init__(
+        self,
+        controller: SmartifyController,
+        entity_description: SensorEntityDescription,
+    ) -> None:
         """Initialize the controller state sensor."""
-        super().__init__(controller, unique_id_suffix=CONTROLLER_STATE_DESCRIPTION.key)
-        self.entity_description = CONTROLLER_STATE_DESCRIPTION
+        super().__init__(controller, unique_id_suffix=entity_description.key)
+        self.controller: SmartifyController = controller
+        self.entity_description = entity_description
+        self._attr_name = entity_description.name
+        self._attr_icon = entity_description.icon
+        self._attr_entity_category = entity_description.entity_category
 
     @property
     def native_value(self) -> str:
@@ -72,4 +95,8 @@ class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, object]:
         """Return diagnostic attributes for the controller state machine."""
-        return self.controller.diagnostic_attributes
+        return (
+            self.controller.diagnostic_attributes
+            if hasattr(self.controller, "diagnostic_attributes")
+            else {}
+        )

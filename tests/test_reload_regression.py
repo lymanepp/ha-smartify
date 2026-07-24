@@ -4,6 +4,7 @@ import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.smartify import DATA_CONTROLLERS
 from custom_components.smartify.const import DOMAIN
 
 
@@ -42,7 +43,7 @@ async def test_duplicate_reload_replaces_old_controller(
 
         old_controller.async_unload.assert_called()
         assert (
-            hass.data[DOMAIN][entry.entry_id]
+            hass.data[DOMAIN][DATA_CONTROLLERS][entry.entry_id]
             is new_controller
         )
 
@@ -62,7 +63,7 @@ async def test_unload_calls_controller_unload_when_present(
 
     controller = MagicMock()
     controller.async_unload = MagicMock()
-    hass.data.setdefault(DOMAIN, {})[
+    hass.data.setdefault(DOMAIN, {}).setdefault(DATA_CONTROLLERS, {})[
         entry.entry_id
     ] = controller
 
@@ -75,7 +76,7 @@ async def test_unload_calls_controller_unload_when_present(
 
     assert result is True
     controller.async_unload.assert_called_once()
-    assert entry.entry_id not in hass.data[DOMAIN]
+    assert entry.entry_id not in hass.data[DOMAIN][DATA_CONTROLLERS]
 
 
 @pytest.mark.asyncio
@@ -93,7 +94,7 @@ async def test_failed_unload_does_not_release_controller(
 
     controller = MagicMock()
     controller.async_unload = MagicMock()
-    hass.data.setdefault(DOMAIN, {})[
+    hass.data.setdefault(DOMAIN, {}).setdefault(DATA_CONTROLLERS, {})[
         entry.entry_id
     ] = controller
 
