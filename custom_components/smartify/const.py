@@ -49,6 +49,14 @@ class Config(enum.StrEnum):
     TRIGGER_ENTITIES = "trigger_entities"
     SUSTAIN_ENTITIES = "sustain_entities"
     DECAY_MINUTES = "decay_minutes"
+    # YAML-only: an optional display-name override for entity-based
+    # controllers (light/ceiling_fan/exhaust_fan), and an optional stable
+    # identity override for any controller's synthetic entry_id. Neither is
+    # ever stored on the controller's `data` -- both are consumed and
+    # stripped out before a controller is constructed, the same way
+    # SENSOR_NAME is stripped out of an occupancy config entry's data.
+    NAME = "name"
+    UNIQUE_ID = "unique_id"
     REFERENCE_HUMIDITY_SENSOR = "reference_humidity_sensor"
     REFERENCE_TEMP_SENSOR = "reference_temp_sensor"
     REQUIRED_OFF_ENTITIES = "required_off_entities"

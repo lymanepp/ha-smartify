@@ -6,7 +6,6 @@ import enum
 from datetime import timedelta
 
 from homeassistant.components.light import ATTR_BRIGHTNESS_PCT
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
@@ -17,6 +16,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, State
 
 from .const import _LOGGER, ON_OFF_STATES, Config
+from .entry_types import SmartifyEntrySource
 from .smartify_controller import SmartifyController
 from .util import is_number, remove_empty
 
@@ -44,7 +44,7 @@ class MyEvent(enum.StrEnum):
 class LightController(SmartifyController):
     """Representation of a Light Controller."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: SmartifyEntrySource) -> None:
         """Initialize the Light Controller."""
         super().__init__(hass, config_entry, MyState.INIT)
 

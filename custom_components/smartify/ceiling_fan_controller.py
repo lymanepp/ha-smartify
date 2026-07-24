@@ -10,12 +10,12 @@ from homeassistant.components.fan import (
     ATTR_PERCENTAGE_STEP,
     SERVICE_SET_PERCENTAGE,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, STATE_OFF, STATE_ON, Platform
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import _LOGGER, ON_OFF_STATES, Config
+from .entry_types import SmartifyEntrySource
 from .smartify_controller import SmartifyController
 from .util import extrapolate_value, float_with_unit, remove_empty, summer_simmer_index
 
@@ -42,7 +42,7 @@ class MyEvent(enum.StrEnum):
 class CeilingFanController(SmartifyController):
     """Representation of a Ceiling Fan Controller."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: SmartifyEntrySource) -> None:
         """Initialize the controller."""
         super().__init__(hass, config_entry, MyState.INIT)
 

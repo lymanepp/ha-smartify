@@ -6,11 +6,11 @@ import enum
 from datetime import timedelta
 from typing import Final
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant, State
 
 from .const import _LOGGER, ON_OFF_STATES, Config
+from .entry_types import SmartifyEntrySource
 from .smartify_controller import SmartifyController
 from .util import remove_empty
 
@@ -78,7 +78,7 @@ class OccupancyController(SmartifyController):
       sustained_occupied, and occupancy follows the sustain entities directly.
     """
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: SmartifyEntrySource) -> None:
         """Initialize the Occupancy Controller."""
         super().__init__(hass, config_entry, initial_state=MyState.UNOCCUPIED)
 

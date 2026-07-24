@@ -8,7 +8,6 @@ from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
 from homeassistant.core import (
     CALLBACK_TYPE,
@@ -25,6 +24,7 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt
 
 from .const import _LOGGER, IGNORE_STATES, Config
+from .entry_types import SmartifyEntrySource
 
 
 class SmartifyController(ABC):
@@ -33,7 +33,7 @@ class SmartifyController(ABC):
     def __init__(
         self,
         hass: HomeAssistant,
-        config_entry: ConfigEntry,
+        config_entry: SmartifyEntrySource,
         initial_state: str,
     ) -> None:
         """Initialize the controller base."""
@@ -169,6 +169,11 @@ class SmartifyController(ABC):
     def is_on(self) -> bool:
         """Return the status of the sensor."""
         return self._state == STATE_ON
+
+    @property
+    def diagnostic_attributes(self) -> dict[str, object]:
+        """Return controller-specific diagnostic attributes."""
+        return {}
 
     def is_entity_state(self, entity: str | None, value: Any) -> bool:
         """Compare the state of an entity. Return True if the value matches the state."""

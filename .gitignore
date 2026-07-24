@@ -21,3 +21,4 @@ config/*
 custom_components/virtual/*
 
 .devcontainer/devcontainer-lock.json
+.ruff_cache/

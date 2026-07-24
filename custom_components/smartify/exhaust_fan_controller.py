@@ -5,7 +5,6 @@ from __future__ import annotations
 import enum
 from datetime import timedelta
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     SERVICE_TURN_OFF,
@@ -17,6 +16,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, State
 
 from .const import _LOGGER, ON_OFF_STATES, Config
+from .entry_types import SmartifyEntrySource
 from .smartify_controller import SmartifyController
 from .util import absolute_humidity, float_with_unit, remove_empty
 
@@ -43,7 +43,7 @@ class MyEvent(enum.StrEnum):
 class ExhaustFanController(SmartifyController):
     """Representation of an Exhaust Fan Controller."""
 
-    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: SmartifyEntrySource) -> None:
         """Initialize the controller."""
         super().__init__(hass, config_entry, MyState.INIT)
 

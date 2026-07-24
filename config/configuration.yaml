@@ -8,6 +8,20 @@ logger:
     custom_components.smartify: debug
     custom_components.virtual: debug
 
+# Controllers can also be defined here instead of (or in addition to) the UI.
+# Each entry accepts the same fields as the matching config/options flow.
+smartify:
+  light:
+    - controlled_entity: light.office_light
+      trigger_entity: binary_sensor.office_motion
+      auto_off_minutes: 5
+
+  occupancy:
+    - sensor_name: Office Occupancy
+      trigger_entities:
+        - binary_sensor.office_motion
+      decay_minutes: 10
+
 # https://github.com/twrecked/hass-virtual
 virtual:
   yaml_config: True
