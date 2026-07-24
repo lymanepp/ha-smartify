@@ -95,9 +95,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
-) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up this integration using UI."""
     controller = _create_controller(hass, config_entry)
     _controller_registry(hass)[config_entry.entry_id] = controller
@@ -108,9 +106,7 @@ async def async_setup_entry(
     return True
 
 
-async def async_unload_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
-) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
     if not await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS):
         return False
@@ -122,9 +118,7 @@ async def async_unload_entry(
     return True
 
 
-async def async_reload_entry(
-    hass: HomeAssistant, config_entry: ConfigEntry
-) -> None:
+async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Reload config entry."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
@@ -256,6 +250,7 @@ async def _async_start_controller(
     hass: HomeAssistant, controller: SmartifyController
 ) -> None:
     """Start a controller now or when Home Assistant finishes starting."""
+
     async def start_controller(_: Event | None = None) -> None:
         await controller.async_setup(hass)
 

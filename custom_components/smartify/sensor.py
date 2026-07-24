@@ -11,7 +11,6 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from . import get_controller, async_setup_yaml_platform
 from .smartify_controller import SmartifyController
-from .const import DOMAIN
 from .entity import SmartifyEntity
 
 CONTROLLER_STATE_DESCRIPTION = SensorEntityDescription(

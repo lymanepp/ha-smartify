@@ -346,7 +346,9 @@ async def test_yaml_reload_replaces_only_yaml_controllers(hass):
             "custom_components.smartify.reload_helper.async_integration_yaml_config",
             return_value=reloaded_config,
         ),
-        patch.object(old_controller, "async_unload", wraps=old_controller.async_unload) as unload,
+        patch.object(
+            old_controller, "async_unload", wraps=old_controller.async_unload
+        ) as unload,
     ):
         await hass.services.async_call(DOMAIN, SERVICE_RELOAD, blocking=True)
 

@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 
 from . import get_controller, async_setup_yaml_platform
-from .const import DOMAIN, Config, ControllerType
+from .const import Config, ControllerType
 from .entity import SmartifyEntity
 from .smartify_controller import SmartifyController
 

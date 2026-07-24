@@ -42,10 +42,7 @@ async def test_duplicate_reload_replaces_old_controller(
         )
 
         old_controller.async_unload.assert_called()
-        assert (
-            hass.data[DOMAIN][DATA_CONTROLLERS][entry.entry_id]
-            is new_controller
-        )
+        assert hass.data[DOMAIN][DATA_CONTROLLERS][entry.entry_id] is new_controller
 
 
 @pytest.mark.asyncio

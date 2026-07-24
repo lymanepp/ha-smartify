@@ -144,18 +144,18 @@ CONFIG_SCHEMA: Final = vol.Schema(
     {
         DOMAIN: vol.Schema(
             {
-                vol.Optional(
-                    str(ControllerType.CEILING_FAN), default=list
-                ): vol.All(cv.ensure_list, [_CEILING_FAN_SCHEMA]),
-                vol.Optional(
-                    str(ControllerType.EXHAUST_FAN), default=list
-                ): vol.All(cv.ensure_list, [_EXHAUST_FAN_SCHEMA]),
+                vol.Optional(str(ControllerType.CEILING_FAN), default=list): vol.All(
+                    cv.ensure_list, [_CEILING_FAN_SCHEMA]
+                ),
+                vol.Optional(str(ControllerType.EXHAUST_FAN), default=list): vol.All(
+                    cv.ensure_list, [_EXHAUST_FAN_SCHEMA]
+                ),
                 vol.Optional(str(ControllerType.LIGHT), default=list): vol.All(
                     cv.ensure_list, [_LIGHT_SCHEMA]
                 ),
-                vol.Optional(
-                    str(ControllerType.OCCUPANCY), default=list
-                ): vol.All(cv.ensure_list, [_OCCUPANCY_SCHEMA]),
+                vol.Optional(str(ControllerType.OCCUPANCY), default=list): vol.All(
+                    cv.ensure_list, [_OCCUPANCY_SCHEMA]
+                ),
             }
         )
     },
