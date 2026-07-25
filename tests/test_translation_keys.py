@@ -90,3 +90,62 @@ def test_code_literals_have_translations():
     assert "occupancy_needs_entity" in config_errors
     assert "invalid_entity" in config_aborts
     assert "invalid_type" in config_aborts
+
+
+def _flatten_keys(value: dict, prefix: str = "") -> set[str]:
+    """Return every leaf translation key in a nested mapping."""
+    keys: set[str] = set()
+    for key, child in value.items():
+        path = f"{prefix}.{key}" if prefix else key
+        if isinstance(child, dict):
+            keys.update(_flatten_keys(child, path))
+        else:
+            keys.add(path)
+    return keys
+
+
+def _placeholders(value: str) -> set[str]:
+    """Return Home Assistant format placeholders used by a translation."""
+    import string
+
+    return {
+        field_name
+        for _, field_name, _, _ in string.Formatter().parse(value)
+        if field_name is not None
+    }
+
+
+@pytest.mark.parametrize(
+    "path", [path for path in TRANSLATION_FILES if path.stem != "en"], ids=lambda p: p.stem
+)
+def test_translation_key_tree_matches_english(path: Path):
+    """Every locale must exactly match the current English translation tree."""
+    english = _load(TRANSLATIONS_DIR / "en.json")
+    translated = _load(path)
+    assert _flatten_keys(translated) == _flatten_keys(english)
+
+
+@pytest.mark.parametrize(
+    "path", [path for path in TRANSLATION_FILES if path.stem != "en"], ids=lambda p: p.stem
+)
+def test_translation_placeholders_match_english(path: Path):
+    """Translated strings must preserve all format placeholders."""
+    english = _load(TRANSLATIONS_DIR / "en.json")
+    translated = _load(path)
+
+    def flatten_values(value: dict, prefix: str = "") -> dict[str, str]:
+        values: dict[str, str] = {}
+        for key, child in value.items():
+            item_path = f"{prefix}.{key}" if prefix else key
+            if isinstance(child, dict):
+                values.update(flatten_values(child, item_path))
+            else:
+                values[item_path] = child
+        return values
+
+    english_values = flatten_values(english)
+    translated_values = flatten_values(translated)
+    for key, english_value in english_values.items():
+        assert _placeholders(translated_values[key]) == _placeholders(english_value), (
+            f"{path.name} placeholder mismatch at {key}"
+        )

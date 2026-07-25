@@ -12,75 +12,75 @@
       },
       "ceiling_fan": {
         "title": "Choose a ceiling fan",
-        "description": "Choose a ceiling fan to control.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Choose a ceiling fan to control.\n\nFor configuration help, see: {github_url}",
         "data": {
           "controlled_entity": "Ceiling fan"
         }
       },
       "ceiling_fan_options": {
         "title": "Configure {controlled_entity}",
-        "description": "Automate a ceiling fan for comfort using the summer simmer index (SSI) as the comfort level. {ssi_url}\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Automate a ceiling fan for comfort using the Summer Simmer Index (SSI) as the comfort measure. {ssi_url}\n\nFor configuration help, see: {github_url}",
         "data": {
           "temp_sensor": "Temperature sensor in the same room as the fan to be controlled:",
           "humidity_sensor": "Humidity sensor in the same room as the fan to be controlled:",
-          "ssi_min": "Fan will start when SSI is above:",
-          "ssi_max": "Fan speed will be maximum speed when SSI above:",
+          "ssi_min": "Start the fan when SSI rises above:",
+          "ssi_max": "Use maximum fan speed when SSI rises above:",
           "speed_min": "Minimum fan speed:",
           "speed_max": "Maximum fan speed:",
-          "required_on_entities": "The following sensors must all be 'on' for occupancy to be detected (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for occupancy to be detected (optional):",
-          "manual_control_minutes": "Manual control (optional):"
+          "required_on_entities": "Required ON entities (optional): all must be on for automatic fan control:",
+          "required_off_entities": "Required OFF entities (optional): all must be off for automatic fan control:",
+          "manual_control_minutes": "Manual-control override duration (optional):"
         }
       },
       "exhaust_fan": {
         "title": "Choose an exhaust fan",
-        "description": "Choose an exhaust fan to control.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Choose an exhaust fan to control.\n\nFor configuration help, see: {github_url}",
         "data": {
           "controlled_entity": "Exhaust fan"
         }
       },
       "exhaust_fan_options": {
         "title": "Configure {controlled_entity}",
-        "description": "Automate an exhaust fan to control humidity.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Automate an exhaust fan based on the room's absolute-humidity rise relative to a reference location.\n\nFor configuration help, see: {github_url}",
         "data": {
           "temp_sensor": "Temperature sensor in the same room as the fan to be controlled:",
           "humidity_sensor": "Humidity sensor in the same room as the fan to be controlled:",
           "reference_temp_sensor": "Temperature sensor outside the room:",
           "reference_humidity_sensor": "Humidity sensor outside the room:",
-          "rising_threshold": "Rising Threshold:",
-          "falling_threshold": "Falling Threshold:",
-          "manual_control_minutes": "Manual control (optional):"
+          "rising_threshold": "Turn-on humidity-difference threshold:",
+          "falling_threshold": "Turn-off humidity-difference threshold:",
+          "manual_control_minutes": "Manual-control override duration (optional):"
         }
       },
       "light": {
         "title": "Choose a light",
-        "description": "Choose a light to control.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Choose a light to control.\n\nFor configuration help, see: {github_url}",
         "data": {
           "controlled_entity": "Light entity"
         }
       },
       "light_options": {
         "title": "Configure {controlled_entity}",
-        "description": "Automate a light based on illuminancy and required states. Everything is optional.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Automate a light using an optional trigger, illuminance limit, required states, and automatic shutoff.\n\nFor configuration help, see: {github_url}",
         "data": {
-          "brightness_pct": "Brightness:",
+          "brightness_pct": "Brightness percentage:",
           "trigger_entity": "Trigger entity (optional):",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Automatic off (optional):",
+          "required_on_entities": "Required ON entities (optional): all must be on before the light can turn on automatically:",
+          "required_off_entities": "Required OFF entities (optional): all must be off before the light can turn on automatically:",
+          "auto_off_minutes": "Automatic shutoff delay (optional):",
           "illuminance_sensor": "Illuminance sensor (optional):",
-          "illuminance_cutoff": "Illuminance cutoff (optional):",
-          "manual_control_minutes": "Manual off time (optional):"
+          "illuminance_cutoff": "Maximum illuminance for automatic turn-on (optional):",
+          "manual_control_minutes": "Manual-control override duration (optional):"
         }
       },
       "occupancy": {
-        "title": "Configure occupancy sensor",
-        "description": "Create a room occupancy controller using trigger entities and sustain entities. The name you enter is used for the controller device and the primary occupancy sensor.\n\nTrigger entities START occupancy. Use PIR or motion-style entities that should make the room occupied when they turn on. When any trigger entities are configured, only those triggers can start occupancy.\n\nSustain entities KEEP occupancy active. Use mmWave, presence, BLE, media, computer/activity, or other on/off entities that should prove the room is still occupied. If no trigger entities are configured, any sustain entity turning on will start occupancy and occupancy turns off when all sustain entities are off.\n\nIf trigger entities are configured without sustain entities, set a decay time so occupancy can turn off after the last trigger.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "title": "Configure occupancy controller",
+        "description": "Create a room occupancy controller using trigger and sustain entities. The name is used for the controller device and primary occupancy sensor.\n\nTrigger entities START occupancy. Use PIR or motion entities that should mark the room occupied when they turn on. If any triggers are configured, sustain entities cannot start occupancy while the room is vacant.\n\nSustain entities KEEP occupancy active. Use mmWave, presence, BLE, media, computer-activity, or similar on/off entities. If no triggers are configured, a sustain entity can also start occupancy; occupancy ends when all sustain entities turn off.\n\nFor trigger-only configurations, set a decay time so occupancy ends after the last trigger.\n\nFor configuration help, see: {github_url}",
         "data": {
           "sensor_name": "Occupancy controller name:",
-          "trigger_entities": "Trigger entities (optional): start occupancy when one turns on. Best for PIR/motion sensors. If any triggers are configured, sustain entities cannot start occupancy while vacant:",
-          "decay_minutes": "Trigger-only decay time (required only when no sustain entities are configured):",
-          "sustain_entities": "Sustain entities (optional): keep occupancy active while any are on. Best for mmWave/presence/BLE/media/activity entities. If no triggers are configured, sustains also start occupancy:",
+          "trigger_entities": "Trigger entities (optional): start occupancy when any turns on. Best for PIR or motion sensors:",
+          "decay_minutes": "Trigger-only decay time (required when no sustain entities are configured):",
+          "sustain_entities": "Sustain entities (optional): keep occupancy active while any are on. If no triggers are configured, sustains can also start occupancy:",
           "required_on_entities": "Required ON entities (optional): all must be on for occupancy to start or remain active:",
           "required_off_entities": "Required OFF entities (optional): all must be off for occupancy to start or remain active:"
         }
@@ -94,7 +94,7 @@
       "trigger_only_needs_minutes": "Trigger-only occupancy requires a decay time because no sustain entities are configured."
     },
     "abort": {
-      "nothing_to_control": "No entities are available to control",
+      "nothing_to_control": "No controllable entities are available.",
       "invalid_entity": "The selected entity is no longer available.",
       "invalid_type": "Unknown controller type."
     }
@@ -103,54 +103,54 @@
     "step": {
       "ceiling_fan": {
         "title": "Configure {controlled_entity}",
-        "description": "Automate a ceiling fan for comfort using the summer simmer index (SSI) as the comfort level. {ssi_url}\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Automate a ceiling fan for comfort using the Summer Simmer Index (SSI) as the comfort measure. {ssi_url}\n\nFor configuration help, see: {github_url}",
         "data": {
           "temp_sensor": "Temperature sensor in the same room as the fan to be controlled:",
           "humidity_sensor": "Humidity sensor in the same room as the fan to be controlled:",
-          "ssi_min": "Fan will start when SSI is above:",
-          "ssi_max": "Fan speed will be maximum speed when SSI above:",
+          "ssi_min": "Start the fan when SSI rises above:",
+          "ssi_max": "Use maximum fan speed when SSI rises above:",
           "speed_min": "Minimum fan speed:",
           "speed_max": "Maximum fan speed:",
-          "required_on_entities": "The following sensors must all be 'on' for occupancy to be detected (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for occupancy to be detected (optional):",
-          "manual_control_minutes": "Manual control (optional):"
+          "required_on_entities": "Required ON entities (optional): all must be on for automatic fan control:",
+          "required_off_entities": "Required OFF entities (optional): all must be off for automatic fan control:",
+          "manual_control_minutes": "Manual-control override duration (optional):"
         }
       },
       "exhaust_fan": {
         "title": "Configure {controlled_entity}",
-        "description": "Automate an exhaust fan to control humidity.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Automate an exhaust fan based on the room's absolute-humidity rise relative to a reference location.\n\nFor configuration help, see: {github_url}",
         "data": {
           "temp_sensor": "Temperature sensor in the same room as the fan to be controlled:",
           "humidity_sensor": "Humidity sensor in the same room as the fan to be controlled:",
           "reference_temp_sensor": "Temperature sensor outside the room:",
           "reference_humidity_sensor": "Humidity sensor outside the room:",
-          "rising_threshold": "Rising Threshold:",
-          "falling_threshold": "Falling Threshold:",
-          "manual_control_minutes": "Manual control (optional):"
+          "rising_threshold": "Turn-on humidity-difference threshold:",
+          "falling_threshold": "Turn-off humidity-difference threshold:",
+          "manual_control_minutes": "Manual-control override duration (optional):"
         }
       },
       "light": {
         "title": "Configure {controlled_entity}",
-        "description": "Automate a light based on illuminancy and required states. Everything is optional.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "description": "Automate a light using an optional trigger, illuminance limit, required states, and automatic shutoff.\n\nFor configuration help, see: {github_url}",
         "data": {
-          "brightness_pct": "Brightness:",
+          "brightness_pct": "Brightness percentage:",
           "trigger_entity": "Trigger entity (optional):",
           "illuminance_sensor": "Illuminance sensor (optional):",
-          "illuminance_cutoff": "Illuminance cutoff (optional):",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Automatic off (optional):",
-          "manual_control_minutes": "Manual off time (optional):"
+          "illuminance_cutoff": "Maximum illuminance for automatic turn-on (optional):",
+          "required_on_entities": "Required ON entities (optional): all must be on before the light can turn on automatically:",
+          "required_off_entities": "Required OFF entities (optional): all must be off before the light can turn on automatically:",
+          "auto_off_minutes": "Automatic shutoff delay (optional):",
+          "manual_control_minutes": "Manual-control override duration (optional):"
         }
       },
       "occupancy": {
-        "title": "Configure occupancy sensor",
-        "description": "Create a room occupancy controller using trigger entities and sustain entities. The name you enter is used for the controller device and the primary occupancy sensor.\n\nTrigger entities START occupancy. Use PIR or motion-style entities that should make the room occupied when they turn on. When any trigger entities are configured, only those triggers can start occupancy.\n\nSustain entities KEEP occupancy active. Use mmWave, presence, BLE, media, computer/activity, or other on/off entities that should prove the room is still occupied. If no trigger entities are configured, any sustain entity turning on will start occupancy and occupancy turns off when all sustain entities are off.\n\nIf trigger entities are configured without sustain entities, set a decay time so occupancy can turn off after the last trigger.\n\nIf you need help with the configuration have a look here: {github_url}",
+        "title": "Configure occupancy controller",
+        "description": "Create a room occupancy controller using trigger and sustain entities. The name is used for the controller device and primary occupancy sensor.\n\nTrigger entities START occupancy. Use PIR or motion entities that should mark the room occupied when they turn on. If any triggers are configured, sustain entities cannot start occupancy while the room is vacant.\n\nSustain entities KEEP occupancy active. Use mmWave, presence, BLE, media, computer-activity, or similar on/off entities. If no triggers are configured, a sustain entity can also start occupancy; occupancy ends when all sustain entities turn off.\n\nFor trigger-only configurations, set a decay time so occupancy ends after the last trigger.\n\nFor configuration help, see: {github_url}",
         "data": {
           "sensor_name": "Occupancy controller name:",
-          "trigger_entities": "Trigger entities (optional): start occupancy when one turns on. Best for PIR/motion sensors. If any triggers are configured, sustain entities cannot start occupancy while vacant:",
-          "decay_minutes": "Trigger-only decay time (required only when no sustain entities are configured):",
-          "sustain_entities": "Sustain entities (optional): keep occupancy active while any are on. Best for mmWave/presence/BLE/media/activity entities. If no triggers are configured, sustains also start occupancy:",
+          "trigger_entities": "Trigger entities (optional): start occupancy when any turns on. Best for PIR or motion sensors:",
+          "decay_minutes": "Trigger-only decay time (required when no sustain entities are configured):",
+          "sustain_entities": "Sustain entities (optional): keep occupancy active while any are on. If no triggers are configured, sustains can also start occupancy:",
           "required_on_entities": "Required ON entities (optional): all must be on for occupancy to start or remain active:",
           "required_off_entities": "Required OFF entities (optional): all must be off for occupancy to start or remain active:"
         }

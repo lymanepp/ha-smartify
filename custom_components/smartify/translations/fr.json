@@ -19,17 +19,17 @@
       },
       "ceiling_fan_options": {
         "title": "Configurer {controlled_entity}",
-        "description": "Automatisez un ventilateur de plafond pour le confort en utilisant l'indice Summer Simmer (SSI) comme niveau de confort. {ssi_url}\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "description": "Automatisez un ventilateur de plafond pour le confort en utilisant l’indice Summer Simmer (SSI) comme mesure de confort. {ssi_url}\n\nAide à la configuration : {github_url}",
         "data": {
           "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
           "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
-          "ssi_min": "Le ventilateur démarrera lorsque le SSI dépassera :",
-          "ssi_max": "La vitesse du ventilateur sera maximale lorsque le SSI dépassera :",
+          "ssi_min": "Démarrer le ventilateur lorsque le SSI dépasse :",
+          "ssi_max": "Utiliser la vitesse maximale lorsque le SSI dépasse :",
           "speed_min": "Vitesse minimale du ventilateur :",
           "speed_max": "Vitesse maximale du ventilateur :",
-          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
-          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :",
-          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+          "required_on_entities": "Entités requises ACTIVÉES (facultatif) : elles doivent toutes être activées pour permettre la commande automatique du ventilateur :",
+          "required_off_entities": "Entités requises DÉSACTIVÉES (facultatif) : elles doivent toutes être désactivées pour permettre la commande automatique du ventilateur :",
+          "manual_control_minutes": "Durée de la dérogation manuelle (facultatif) :"
         }
       },
       "exhaust_fan": {
@@ -41,15 +41,15 @@
       },
       "exhaust_fan_options": {
         "title": "Configurer {controlled_entity}",
-        "description": "Automatisez un ventilateur d'extraction pour contrôler l'humidité.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "description": "Automatisez un ventilateur d’extraction selon l’augmentation de l’humidité absolue de la pièce par rapport à un emplacement de référence.\n\nAide à la configuration : {github_url}",
         "data": {
           "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
           "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
           "reference_temp_sensor": "Capteur de température à l'extérieur de la pièce :",
           "reference_humidity_sensor": "Capteur d'humidité à l'extérieur de la pièce :",
-          "rising_threshold": "Seuil de montée :",
-          "falling_threshold": "Seuil de descente :",
-          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+          "rising_threshold": "Seuil de différence d’humidité pour la mise en marche :",
+          "falling_threshold": "Seuil de différence d’humidité pour l’arrêt :",
+          "manual_control_minutes": "Durée de la dérogation manuelle (facultatif) :"
         }
       },
       "light": {
@@ -61,45 +61,41 @@
       },
       "light_options": {
         "title": "Configurer {controlled_entity}",
-        "description": "Automatisez une lumière selon l'éclairement et les états requis. Tout est optionnel.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "description": "Automatisez une lumière à l’aide d’un déclencheur facultatif, d’une limite d’éclairement, d’états requis et d’un arrêt automatique.\n\nAide à la configuration : {github_url}",
         "data": {
-          "brightness_pct": "Luminosité :",
+          "brightness_pct": "Pourcentage de luminosité :",
           "trigger_entity": "Entité déclencheuse (optionnel) :",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Arrêt automatique (optionnel) :",
+          "required_on_entities": "Entités requises ACTIVÉES (facultatif) : elles doivent toutes être activées avant que la lumière puisse s’allumer automatiquement :",
+          "required_off_entities": "Entités requises DÉSACTIVÉES (facultatif) : elles doivent toutes être désactivées avant que la lumière puisse s’allumer automatiquement :",
+          "auto_off_minutes": "Délai d’arrêt automatique (facultatif) :",
           "illuminance_sensor": "Capteur de luminosité (optionnel) :",
-          "illuminance_cutoff": "Seuil de luminosité (optionnel) :",
-          "manual_control_minutes": "Temps d'arrêt manuel (optionnel) :"
+          "illuminance_cutoff": "Éclairement maximal pour l’allumage automatique (facultatif) :",
+          "manual_control_minutes": "Durée de la dérogation manuelle (facultatif) :"
         }
       },
       "occupancy": {
-        "title": "Configurer le capteur d'occupation",
-        "description": "Créez un capteur d'occupation basé sur des détecteurs de mouvement, des capteurs de porte et d'autres entités.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "title": "Configurer le contrôleur d’occupation",
+        "description": "Créez un contrôleur d’occupation de pièce à l’aide d’entités de déclenchement et de maintien. Le nom est utilisé pour le périphérique contrôleur et le capteur d’occupation principal.\n\nLes entités de déclenchement DÉMARRENT l’occupation. Utilisez des entités PIR ou de mouvement qui doivent marquer la pièce comme occupée lorsqu’elles s’activent. Si des déclencheurs sont configurés, les entités de maintien ne peuvent pas démarrer l’occupation lorsque la pièce est inoccupée.\n\nLes entités de maintien MAINTIENNENT l’occupation active. Utilisez des entités mmWave, de présence, BLE, multimédia, d’activité informatique ou similaires. Si aucun déclencheur n’est configuré, une entité de maintien peut aussi démarrer l’occupation ; celle-ci prend fin lorsque toutes les entités de maintien sont désactivées.\n\nPour une configuration uniquement basée sur des déclencheurs, définissez un délai d’extinction afin que l’occupation prenne fin après le dernier déclencheur.\n\nAide à la configuration : {github_url}",
         "data": {
-          "sensor_name": "Nom du capteur d'occupation :",
-          "motion_sensors": "L'occupation sera détectée pendant les minutes spécifiées lorsqu'un mouvement est détecté par l'un de ces capteurs (optionnel) :",
-          "motion_off_minutes": "Éteindre après (optionnel) :",
-          "other_entities": "L'occupation sera détectée si l'un de ces capteurs est sur 'activé' (optionnel) :",
-          "door_sensors": "L'occupation sera détectée indéfiniment lorsqu'un mouvement est détecté dans une pièce tant que toutes les portes restent fermées, même après l'arrêt du mouvement. Ajoutez des capteurs de porte uniquement lorsque tous les points d'accès de la zone disposent de capteurs. Les capteurs de porte doivent répondre rapidement et les capteurs basés sur le cloud doivent être évités (optionnel) :",
-          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
-          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :"
+          "sensor_name": "Nom du contrôleur d’occupation :",
+          "trigger_entities": "Entités de déclenchement (facultatif) : démarrent l’occupation lorsque l’une d’elles s’active. Recommandées pour les capteurs PIR ou de mouvement :",
+          "decay_minutes": "Délai d’extinction pour déclencheurs seuls (requis si aucune entité de maintien n’est configurée) :",
+          "sustain_entities": "Entités de maintien (facultatif) : maintiennent l’occupation active tant que l’une d’elles est activée. Sans déclencheurs, elles peuvent aussi démarrer l’occupation :",
+          "required_on_entities": "Entités requises ACTIVÉES (facultatif) : elles doivent toutes être activées pour que l’occupation puisse démarrer ou rester active :",
+          "required_off_entities": "Entités requises DÉSACTIVÉES (facultatif) : elles doivent toutes être désactivées pour que l’occupation puisse démarrer ou rester active :"
         }
       }
     },
     "error": {
-      "door_needs_motion": "Les capteurs de porte nécessitent des détecteurs de mouvement.",
       "duplicate_name": "Une intégration portant le même nom existe déjà.",
-      "motion_needs_minutes": "Les détecteurs de mouvement nécessitent que 'éteindre après' soit spécifié.",
-      "occupancy_and_auto_off": "Le capteur d'occupation et l'arrêt automatique ne peuvent pas être utilisés ensemble.",
-      "occupancy_needs_trigger": "Vous devez spécifier des détecteurs de mouvement et/ou d'autres entités.",
-      "off_minutes_required": "'Éteindre après quelques minutes' est requis.",
+      "occupancy_and_auto_off": "Le capteur d’occupation et l’arrêt automatique ne peuvent pas être utilisés ensemble.",
+      "off_minutes_required": "« Arrêter après quelques minutes » est requis.",
       "occupancy_needs_entity": "Spécifiez au moins une entité de déclenchement ou de maintien.",
-      "trigger_only_needs_minutes": "L'occupation par déclenchement seul nécessite un délai de décroissance car aucune entité de maintien n'est configurée."
+      "trigger_only_needs_minutes": "Une occupation basée uniquement sur des déclencheurs nécessite un délai d’extinction, car aucune entité de maintien n’est configurée."
     },
     "abort": {
-      "nothing_to_control": "Aucune entité disponible à contrôler",
-      "invalid_entity": "L'entité sélectionnée n'est plus disponible.",
+      "nothing_to_control": "Aucune entité contrôlable n’est disponible.",
+      "invalid_entity": "L’entité sélectionnée n’est plus disponible.",
       "invalid_type": "Type de contrôleur inconnu."
     }
   },
@@ -107,72 +103,68 @@
     "step": {
       "ceiling_fan": {
         "title": "Configurer {controlled_entity}",
-        "description": "Automatisez un ventilateur de plafond pour le confort en utilisant l'indice Summer Simmer (SSI) comme niveau de confort. {ssi_url}\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "description": "Automatisez un ventilateur de plafond pour le confort en utilisant l’indice Summer Simmer (SSI) comme mesure de confort. {ssi_url}\n\nAide à la configuration : {github_url}",
         "data": {
           "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
           "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
-          "ssi_min": "Le ventilateur démarrera lorsque le SSI dépassera :",
-          "ssi_max": "La vitesse du ventilateur sera maximale lorsque le SSI dépassera :",
+          "ssi_min": "Démarrer le ventilateur lorsque le SSI dépasse :",
+          "ssi_max": "Utiliser la vitesse maximale lorsque le SSI dépasse :",
           "speed_min": "Vitesse minimale du ventilateur :",
           "speed_max": "Vitesse maximale du ventilateur :",
-          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
-          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :",
-          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+          "required_on_entities": "Entités requises ACTIVÉES (facultatif) : elles doivent toutes être activées pour permettre la commande automatique du ventilateur :",
+          "required_off_entities": "Entités requises DÉSACTIVÉES (facultatif) : elles doivent toutes être désactivées pour permettre la commande automatique du ventilateur :",
+          "manual_control_minutes": "Durée de la dérogation manuelle (facultatif) :"
         }
       },
       "exhaust_fan": {
         "title": "Configurer {controlled_entity}",
-        "description": "Automatisez un ventilateur d'extraction pour contrôler l'humidité.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "description": "Automatisez un ventilateur d’extraction selon l’augmentation de l’humidité absolue de la pièce par rapport à un emplacement de référence.\n\nAide à la configuration : {github_url}",
         "data": {
           "temp_sensor": "Capteur de température dans la même pièce que le ventilateur à contrôler :",
           "humidity_sensor": "Capteur d'humidité dans la même pièce que le ventilateur à contrôler :",
           "reference_temp_sensor": "Capteur de température à l'extérieur de la pièce :",
           "reference_humidity_sensor": "Capteur d'humidité à l'extérieur de la pièce :",
-          "rising_threshold": "Seuil de montée :",
-          "falling_threshold": "Seuil de descente :",
-          "manual_control_minutes": "Contrôle manuel (optionnel) :"
+          "rising_threshold": "Seuil de différence d’humidité pour la mise en marche :",
+          "falling_threshold": "Seuil de différence d’humidité pour l’arrêt :",
+          "manual_control_minutes": "Durée de la dérogation manuelle (facultatif) :"
         }
       },
       "light": {
         "title": "Configurer {controlled_entity}",
-        "description": "Automatisez une lumière selon l'éclairement et les états requis. Tout est optionnel.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "description": "Automatisez une lumière à l’aide d’un déclencheur facultatif, d’une limite d’éclairement, d’états requis et d’un arrêt automatique.\n\nAide à la configuration : {github_url}",
         "data": {
-          "brightness_pct": "Luminosité :",
+          "brightness_pct": "Pourcentage de luminosité :",
           "trigger_entity": "Entité déclencheuse (optionnel) :",
           "illuminance_sensor": "Capteur de luminosité (optionnel) :",
-          "illuminance_cutoff": "Seuil de luminosité (optionnel) :",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Arrêt automatique (optionnel) :",
-          "manual_control_minutes": "Temps d'arrêt manuel (optionnel) :"
+          "illuminance_cutoff": "Éclairement maximal pour l’allumage automatique (facultatif) :",
+          "required_on_entities": "Entités requises ACTIVÉES (facultatif) : elles doivent toutes être activées avant que la lumière puisse s’allumer automatiquement :",
+          "required_off_entities": "Entités requises DÉSACTIVÉES (facultatif) : elles doivent toutes être désactivées avant que la lumière puisse s’allumer automatiquement :",
+          "auto_off_minutes": "Délai d’arrêt automatique (facultatif) :",
+          "manual_control_minutes": "Durée de la dérogation manuelle (facultatif) :"
         }
       },
       "occupancy": {
-        "title": "Configurer le capteur d'occupation",
-        "description": "Créez un capteur d'occupation basé sur des détecteurs de mouvement, des capteurs de porte et d'autres entités.\n\nSi vous avez besoin d'aide pour la configuration, consultez : {github_url}",
+        "title": "Configurer le contrôleur d’occupation",
+        "description": "Créez un contrôleur d’occupation de pièce à l’aide d’entités de déclenchement et de maintien. Le nom est utilisé pour le périphérique contrôleur et le capteur d’occupation principal.\n\nLes entités de déclenchement DÉMARRENT l’occupation. Utilisez des entités PIR ou de mouvement qui doivent marquer la pièce comme occupée lorsqu’elles s’activent. Si des déclencheurs sont configurés, les entités de maintien ne peuvent pas démarrer l’occupation lorsque la pièce est inoccupée.\n\nLes entités de maintien MAINTIENNENT l’occupation active. Utilisez des entités mmWave, de présence, BLE, multimédia, d’activité informatique ou similaires. Si aucun déclencheur n’est configuré, une entité de maintien peut aussi démarrer l’occupation ; celle-ci prend fin lorsque toutes les entités de maintien sont désactivées.\n\nPour une configuration uniquement basée sur des déclencheurs, définissez un délai d’extinction afin que l’occupation prenne fin après le dernier déclencheur.\n\nAide à la configuration : {github_url}",
         "data": {
-          "sensor_name": "Nom du capteur d'occupation :",
-          "motion_sensors": "L'occupation sera détectée pendant les minutes spécifiées lorsqu'un mouvement est détecté par l'un de ces capteurs (optionnel) :",
-          "motion_off_minutes": "Éteindre après (optionnel) :",
-          "other_entities": "L'occupation sera détectée si l'un de ces capteurs est sur 'activé' (optionnel) :",
-          "door_sensors": "L'occupation sera détectée indéfiniment lorsqu'un mouvement est détecté dans une pièce tant que toutes les portes restent fermées, même après l'arrêt du mouvement. Ajoutez des capteurs de porte uniquement lorsque tous les points d'accès de la zone disposent de capteurs. Les capteurs de porte doivent répondre rapidement et les capteurs basés sur le cloud doivent être évités (optionnel) :",
-          "required_on_entities": "Les capteurs suivants doivent tous être sur 'activé' pour détecter une occupation (optionnel) :",
-          "required_off_entities": "Les capteurs suivants doivent tous être sur 'désactivé' pour détecter une occupation (optionnel) :"
+          "sensor_name": "Nom du contrôleur d’occupation :",
+          "trigger_entities": "Entités de déclenchement (facultatif) : démarrent l’occupation lorsque l’une d’elles s’active. Recommandées pour les capteurs PIR ou de mouvement :",
+          "decay_minutes": "Délai d’extinction pour déclencheurs seuls (requis si aucune entité de maintien n’est configurée) :",
+          "sustain_entities": "Entités de maintien (facultatif) : maintiennent l’occupation active tant que l’une d’elles est activée. Sans déclencheurs, elles peuvent aussi démarrer l’occupation :",
+          "required_on_entities": "Entités requises ACTIVÉES (facultatif) : elles doivent toutes être activées pour que l’occupation puisse démarrer ou rester active :",
+          "required_off_entities": "Entités requises DÉSACTIVÉES (facultatif) : elles doivent toutes être désactivées pour que l’occupation puisse démarrer ou rester active :"
         }
       }
     },
     "error": {
       "duplicate_name": "Une intégration portant le même nom existe déjà.",
-      "occupancy_and_auto_off": "Le capteur d'occupation et l'arrêt automatique ne peuvent pas être utilisés ensemble.",
-      "door_needs_motion": "Les capteurs de porte nécessitent des détecteurs de mouvement.",
-      "motion_needs_minutes": "Les détecteurs de mouvement nécessitent que 'éteindre après' soit spécifié.",
-      "occupancy_needs_trigger": "Vous devez spécifier des détecteurs de mouvement et/ou d'autres entités.",
-      "off_minutes_required": "'Éteindre après quelques minutes' est requis.",
+      "occupancy_and_auto_off": "Le capteur d’occupation et l’arrêt automatique ne peuvent pas être utilisés ensemble.",
+      "off_minutes_required": "« Arrêter après quelques minutes » est requis.",
       "occupancy_needs_entity": "Spécifiez au moins une entité de déclenchement ou de maintien.",
-      "trigger_only_needs_minutes": "L'occupation par déclenchement seul nécessite un délai de décroissance car aucune entité de maintien n'est configurée."
+      "trigger_only_needs_minutes": "Une occupation basée uniquement sur des déclencheurs nécessite un délai d’extinction, car aucune entité de maintien n’est configurée."
     },
     "abort": {
-      "invalid_entity": "L'entité sélectionnée n'est plus disponible.",
+      "invalid_entity": "L’entité sélectionnée n’est plus disponible.",
       "invalid_type": "Type de contrôleur inconnu."
     }
   }

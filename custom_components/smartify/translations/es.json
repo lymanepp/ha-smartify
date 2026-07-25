@@ -19,17 +19,17 @@
       },
       "ceiling_fan_options": {
         "title": "Configurar {controlled_entity}",
-        "description": "Automatiza un ventilador de techo para mejorar el confort utilizando el índice Summer Simmer (SSI) como nivel de confort. {ssi_url}\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "description": "Automatiza un ventilador de techo para mejorar el confort usando el índice Summer Simmer (SSI) como medida de confort. {ssi_url}\n\nAyuda de configuración: {github_url}",
         "data": {
           "temp_sensor": "Sensor de temperatura en la misma habitación que el ventilador a controlar:",
           "humidity_sensor": "Sensor de humedad en la misma habitación que el ventilador a controlar:",
-          "ssi_min": "El ventilador se encenderá cuando el SSI supere:",
-          "ssi_max": "La velocidad del ventilador será máxima cuando el SSI supere:",
+          "ssi_min": "Encender el ventilador cuando el SSI supere:",
+          "ssi_max": "Usar la velocidad máxima cuando el SSI supere:",
           "speed_min": "Velocidad mínima del ventilador:",
           "speed_max": "Velocidad máxima del ventilador:",
-          "required_on_entities": "Los siguientes sensores deben estar todos en 'encendido' para detectar ocupación (opcional):",
-          "required_off_entities": "Los siguientes sensores deben estar todos en 'apagado' para detectar ocupación (opcional):",
-          "manual_control_minutes": "Control manual (opcional):"
+          "required_on_entities": "Entidades requeridas ACTIVADAS (opcional): todas deben estar activadas para el control automático del ventilador:",
+          "required_off_entities": "Entidades requeridas DESACTIVADAS (opcional): todas deben estar desactivadas para el control automático del ventilador:",
+          "manual_control_minutes": "Duración de la anulación manual (opcional):"
         }
       },
       "exhaust_fan": {
@@ -41,15 +41,15 @@
       },
       "exhaust_fan_options": {
         "title": "Configurar {controlled_entity}",
-        "description": "Automatiza un extractor para controlar la humedad.\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "description": "Automatiza un extractor según el aumento de humedad absoluta de la habitación respecto de una ubicación de referencia.\n\nAyuda de configuración: {github_url}",
         "data": {
           "temp_sensor": "Sensor de temperatura en la misma habitación que el ventilador a controlar:",
           "humidity_sensor": "Sensor de humedad en la misma habitación que el ventilador a controlar:",
           "reference_temp_sensor": "Sensor de temperatura fuera de la habitación:",
           "reference_humidity_sensor": "Sensor de humedad fuera de la habitación:",
-          "rising_threshold": "Umbral de subida:",
-          "falling_threshold": "Umbral de bajada:",
-          "manual_control_minutes": "Control manual (opcional):"
+          "rising_threshold": "Umbral de diferencia de humedad para encender:",
+          "falling_threshold": "Umbral de diferencia de humedad para apagar:",
+          "manual_control_minutes": "Duración de la anulación manual (opcional):"
         }
       },
       "light": {
@@ -61,44 +61,40 @@
       },
       "light_options": {
         "title": "Configurar {controlled_entity}",
-        "description": "Automatiza una luz según la iluminancia y los estados requeridos. Todo es opcional.\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "description": "Automatiza una luz mediante un activador opcional, un límite de iluminancia, estados requeridos y apagado automático.\n\nAyuda de configuración: {github_url}",
         "data": {
-          "brightness_pct": "Brillo:",
+          "brightness_pct": "Porcentaje de brillo:",
           "trigger_entity": "Entidad disparadora (opcional):",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Apagado automático (opcional):",
+          "required_on_entities": "Entidades requeridas ACTIVADAS (opcional): todas deben estar activadas antes de que la luz pueda encenderse automáticamente:",
+          "required_off_entities": "Entidades requeridas DESACTIVADAS (opcional): todas deben estar desactivadas antes de que la luz pueda encenderse automáticamente:",
+          "auto_off_minutes": "Retardo de apagado automático (opcional):",
           "illuminance_sensor": "Sensor de iluminancia (opcional):",
-          "illuminance_cutoff": "Límite de iluminancia (opcional):",
-          "manual_control_minutes": "Tiempo de apagado manual (opcional):"
+          "illuminance_cutoff": "Iluminancia máxima para el encendido automático (opcional):",
+          "manual_control_minutes": "Duración de la anulación manual (opcional):"
         }
       },
       "occupancy": {
-        "title": "Configurar sensor de ocupación",
-        "description": "Crea un sensor de ocupación basado en sensores de movimiento, sensores de puerta y otras entidades.\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "title": "Configurar controlador de ocupación",
+        "description": "Crea un controlador de ocupación de habitación mediante entidades activadoras y de mantenimiento. El nombre se usa para el dispositivo controlador y el sensor de ocupación principal.\n\nLas entidades activadoras INICIAN la ocupación. Usa entidades PIR o de movimiento que deban marcar la habitación como ocupada al activarse. Si hay activadores configurados, las entidades de mantenimiento no pueden iniciar la ocupación mientras la habitación está vacía.\n\nLas entidades de mantenimiento MANTIENEN activa la ocupación. Usa entidades mmWave, de presencia, BLE, multimedia, actividad del ordenador u otras similares de encendido/apagado. Si no hay activadores, una entidad de mantenimiento también puede iniciar la ocupación; esta finaliza cuando todas se desactivan.\n\nEn configuraciones solo con activadores, establece un tiempo de decaimiento para que la ocupación finalice después del último activador.\n\nAyuda de configuración: {github_url}",
         "data": {
-          "sensor_name": "Nombre del sensor de ocupación:",
-          "motion_sensors": "La ocupación se detectará durante los minutos especificados cuando cualquiera de estos sensores detecte movimiento (opcional):",
-          "motion_off_minutes": "Apagar después de (opcional):",
-          "other_entities": "La ocupación se detectará si cualquiera de estos sensores está en 'encendido' (opcional):",
-          "door_sensors": "La ocupación se detectará indefinidamente cuando se detecte movimiento en una habitación mientras todas las puertas permanezcan cerradas, incluso después de que el movimiento se detenga. Solo agrega sensores de puerta cuando todos los puntos de acceso del área tengan sensores. Los sensores de puerta deben informar rápidamente y deben evitarse los sensores basados en la nube (opcional):",
-          "required_on_entities": "Los siguientes sensores deben estar todos en 'encendido' para detectar ocupación (opcional):",
-          "required_off_entities": "Los siguientes sensores deben estar todos en 'apagado' para detectar ocupación (opcional):"
+          "sensor_name": "Nombre del controlador de ocupación:",
+          "trigger_entities": "Entidades activadoras (opcional): inician la ocupación cuando cualquiera se activa. Recomendadas para sensores PIR o de movimiento:",
+          "decay_minutes": "Tiempo de decaimiento solo con activadores (requerido si no hay entidades de mantenimiento):",
+          "sustain_entities": "Entidades de mantenimiento (opcional): mantienen activa la ocupación mientras cualquiera esté activada. Sin activadores, también pueden iniciar la ocupación:",
+          "required_on_entities": "Entidades requeridas ACTIVADAS (opcional): todas deben estar activadas para que la ocupación pueda iniciarse o mantenerse:",
+          "required_off_entities": "Entidades requeridas DESACTIVADAS (opcional): todas deben estar desactivadas para que la ocupación pueda iniciarse o mantenerse:"
         }
       }
     },
     "error": {
-      "door_needs_motion": "Los sensores de puerta requieren que se especifiquen sensores de movimiento.",
       "duplicate_name": "Ya existe una integración con el mismo nombre.",
-      "motion_needs_minutes": "Los sensores de movimiento requieren que se especifique 'apagar después de'.",
       "occupancy_and_auto_off": "El sensor de ocupación y el apagado automático no pueden usarse juntos.",
-      "occupancy_needs_trigger": "Debe especificar sensores de movimiento y/u otras entidades.",
-      "off_minutes_required": "Se requiere 'apagar después de minutos'.",
-      "occupancy_needs_entity": "Especifique al menos una entidad de activación o de mantenimiento.",
-      "trigger_only_needs_minutes": "La ocupación solo por activación requiere un tiempo de decaimiento porque no hay entidades de mantenimiento configuradas."
+      "off_minutes_required": "Se requiere «Apagar después de minutos».",
+      "occupancy_needs_entity": "Especifica al menos una entidad activadora o de mantenimiento.",
+      "trigger_only_needs_minutes": "La ocupación solo con activadores requiere un tiempo de decaimiento porque no hay entidades de mantenimiento configuradas."
     },
     "abort": {
-      "nothing_to_control": "No hay entidades disponibles para controlar",
+      "nothing_to_control": "No hay entidades controlables disponibles.",
       "invalid_entity": "La entidad seleccionada ya no está disponible.",
       "invalid_type": "Tipo de controlador desconocido."
     }
@@ -107,69 +103,65 @@
     "step": {
       "ceiling_fan": {
         "title": "Configurar {controlled_entity}",
-        "description": "Automatiza un ventilador de techo para mejorar el confort utilizando el índice Summer Simmer (SSI) como nivel de confort. {ssi_url}\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "description": "Automatiza un ventilador de techo para mejorar el confort usando el índice Summer Simmer (SSI) como medida de confort. {ssi_url}\n\nAyuda de configuración: {github_url}",
         "data": {
           "temp_sensor": "Sensor de temperatura en la misma habitación que el ventilador a controlar:",
           "humidity_sensor": "Sensor de humedad en la misma habitación que el ventilador a controlar:",
-          "ssi_min": "El ventilador se encenderá cuando el SSI supere:",
-          "ssi_max": "La velocidad del ventilador será máxima cuando el SSI supere:",
+          "ssi_min": "Encender el ventilador cuando el SSI supere:",
+          "ssi_max": "Usar la velocidad máxima cuando el SSI supere:",
           "speed_min": "Velocidad mínima del ventilador:",
           "speed_max": "Velocidad máxima del ventilador:",
-          "required_on_entities": "Los siguientes sensores deben estar todos en 'encendido' para detectar ocupación (opcional):",
-          "required_off_entities": "Los siguientes sensores deben estar todos en 'apagado' para detectar ocupación (opcional):",
-          "manual_control_minutes": "Control manual (opcional):"
+          "required_on_entities": "Entidades requeridas ACTIVADAS (opcional): todas deben estar activadas para el control automático del ventilador:",
+          "required_off_entities": "Entidades requeridas DESACTIVADAS (opcional): todas deben estar desactivadas para el control automático del ventilador:",
+          "manual_control_minutes": "Duración de la anulación manual (opcional):"
         }
       },
       "exhaust_fan": {
         "title": "Configurar {controlled_entity}",
-        "description": "Automatiza un extractor para controlar la humedad.\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "description": "Automatiza un extractor según el aumento de humedad absoluta de la habitación respecto de una ubicación de referencia.\n\nAyuda de configuración: {github_url}",
         "data": {
           "temp_sensor": "Sensor de temperatura en la misma habitación que el ventilador a controlar:",
           "humidity_sensor": "Sensor de humedad en la misma habitación que el ventilador a controlar:",
           "reference_temp_sensor": "Sensor de temperatura fuera de la habitación:",
           "reference_humidity_sensor": "Sensor de humedad fuera de la habitación:",
-          "rising_threshold": "Umbral de subida:",
-          "falling_threshold": "Umbral de bajada:",
-          "manual_control_minutes": "Control manual (opcional):"
+          "rising_threshold": "Umbral de diferencia de humedad para encender:",
+          "falling_threshold": "Umbral de diferencia de humedad para apagar:",
+          "manual_control_minutes": "Duración de la anulación manual (opcional):"
         }
       },
       "light": {
         "title": "Configurar {controlled_entity}",
-        "description": "Automatiza una luz según la iluminancia y los estados requeridos. Todo es opcional.\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "description": "Automatiza una luz mediante un activador opcional, un límite de iluminancia, estados requeridos y apagado automático.\n\nAyuda de configuración: {github_url}",
         "data": {
-          "brightness_pct": "Brillo:",
+          "brightness_pct": "Porcentaje de brillo:",
           "trigger_entity": "Entidad disparadora (opcional):",
           "illuminance_sensor": "Sensor de iluminancia (opcional):",
-          "illuminance_cutoff": "Límite de iluminancia (opcional):",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Apagado automático (opcional):",
-          "manual_control_minutes": "Tiempo de apagado manual (opcional):"
+          "illuminance_cutoff": "Iluminancia máxima para el encendido automático (opcional):",
+          "required_on_entities": "Entidades requeridas ACTIVADAS (opcional): todas deben estar activadas antes de que la luz pueda encenderse automáticamente:",
+          "required_off_entities": "Entidades requeridas DESACTIVADAS (opcional): todas deben estar desactivadas antes de que la luz pueda encenderse automáticamente:",
+          "auto_off_minutes": "Retardo de apagado automático (opcional):",
+          "manual_control_minutes": "Duración de la anulación manual (opcional):"
         }
       },
       "occupancy": {
-        "title": "Configurar sensor de ocupación",
-        "description": "Crea un sensor de ocupación basado en sensores de movimiento, sensores de puerta y otras entidades.\n\nSi necesitas ayuda con la configuración, consulta aquí: {github_url}",
+        "title": "Configurar controlador de ocupación",
+        "description": "Crea un controlador de ocupación de habitación mediante entidades activadoras y de mantenimiento. El nombre se usa para el dispositivo controlador y el sensor de ocupación principal.\n\nLas entidades activadoras INICIAN la ocupación. Usa entidades PIR o de movimiento que deban marcar la habitación como ocupada al activarse. Si hay activadores configurados, las entidades de mantenimiento no pueden iniciar la ocupación mientras la habitación está vacía.\n\nLas entidades de mantenimiento MANTIENEN activa la ocupación. Usa entidades mmWave, de presencia, BLE, multimedia, actividad del ordenador u otras similares de encendido/apagado. Si no hay activadores, una entidad de mantenimiento también puede iniciar la ocupación; esta finaliza cuando todas se desactivan.\n\nEn configuraciones solo con activadores, establece un tiempo de decaimiento para que la ocupación finalice después del último activador.\n\nAyuda de configuración: {github_url}",
         "data": {
-          "sensor_name": "Nombre del sensor de ocupación:",
-          "motion_sensors": "La ocupación se detectará durante los minutos especificados cuando cualquiera de estos sensores detecte movimiento (opcional):",
-          "motion_off_minutes": "Apagar después de (opcional):",
-          "other_entities": "La ocupación se detectará si cualquiera de estos sensores está en 'encendido' (opcional):",
-          "door_sensors": "La ocupación se detectará indefinidamente cuando se detecte movimiento en una habitación mientras todas las puertas permanezcan cerradas, incluso después de que el movimiento se detenga. Solo agrega sensores de puerta cuando todos los puntos de acceso del área tengan sensores. Los sensores de puerta deben informar rápidamente y deben evitarse los sensores basados en la nube (opcional):",
-          "required_on_entities": "Los siguientes sensores deben estar todos en 'encendido' para detectar ocupación (opcional):",
-          "required_off_entities": "Los siguientes sensores deben estar todos en 'apagado' para detectar ocupación (opcional):"
+          "sensor_name": "Nombre del controlador de ocupación:",
+          "trigger_entities": "Entidades activadoras (opcional): inician la ocupación cuando cualquiera se activa. Recomendadas para sensores PIR o de movimiento:",
+          "decay_minutes": "Tiempo de decaimiento solo con activadores (requerido si no hay entidades de mantenimiento):",
+          "sustain_entities": "Entidades de mantenimiento (opcional): mantienen activa la ocupación mientras cualquiera esté activada. Sin activadores, también pueden iniciar la ocupación:",
+          "required_on_entities": "Entidades requeridas ACTIVADAS (opcional): todas deben estar activadas para que la ocupación pueda iniciarse o mantenerse:",
+          "required_off_entities": "Entidades requeridas DESACTIVADAS (opcional): todas deben estar desactivadas para que la ocupación pueda iniciarse o mantenerse:"
         }
       }
     },
     "error": {
       "duplicate_name": "Ya existe una integración con el mismo nombre.",
       "occupancy_and_auto_off": "El sensor de ocupación y el apagado automático no pueden usarse juntos.",
-      "door_needs_motion": "Los sensores de puerta requieren que se especifiquen sensores de movimiento.",
-      "motion_needs_minutes": "Los sensores de movimiento requieren que se especifique 'apagar después de'.",
-      "occupancy_needs_trigger": "Debe especificar sensores de movimiento y/u otras entidades.",
-      "off_minutes_required": "Se requiere 'apagar después de minutos'.",
-      "occupancy_needs_entity": "Especifique al menos una entidad de activación o de mantenimiento.",
-      "trigger_only_needs_minutes": "La ocupación solo por activación requiere un tiempo de decaimiento porque no hay entidades de mantenimiento configuradas."
+      "off_minutes_required": "Se requiere «Apagar después de minutos».",
+      "occupancy_needs_entity": "Especifica al menos una entidad activadora o de mantenimiento.",
+      "trigger_only_needs_minutes": "La ocupación solo con activadores requiere un tiempo de decaimiento porque no hay entidades de mantenimiento configuradas."
     },
     "abort": {
       "invalid_entity": "La entidad seleccionada ya no está disponible.",

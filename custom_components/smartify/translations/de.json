@@ -19,17 +19,17 @@
       },
       "ceiling_fan_options": {
         "title": "{controlled_entity} konfigurieren",
-        "description": "Automatisieren Sie einen Deckenventilator für mehr Komfort mithilfe des Summer Simmer Index (SSI) als Komfortwert. {ssi_url}\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "description": "Automatisieren Sie einen Deckenventilator für mehr Komfort anhand des Summer Simmer Index (SSI) als Komfortmaß. {ssi_url}\n\nKonfigurationshilfe: {github_url}",
         "data": {
           "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
           "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
-          "ssi_min": "Der Ventilator startet, wenn der SSI über folgendem Wert liegt:",
-          "ssi_max": "Die Ventilatorgeschwindigkeit wird maximal sein, wenn der SSI über folgendem Wert liegt:",
+          "ssi_min": "Ventilator einschalten, wenn der SSI über folgenden Wert steigt:",
+          "ssi_max": "Maximale Ventilatorgeschwindigkeit verwenden, wenn der SSI über folgenden Wert steigt:",
           "speed_min": "Minimale Ventilatorgeschwindigkeit:",
           "speed_max": "Maximale Ventilatorgeschwindigkeit:",
-          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
-          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):",
-          "manual_control_minutes": "Manuelle Steuerung (optional):"
+          "required_on_entities": "Erforderliche EIN-Entitäten (optional): Alle müssen eingeschaltet sein, damit der Ventilator automatisch gesteuert wird:",
+          "required_off_entities": "Erforderliche AUS-Entitäten (optional): Alle müssen ausgeschaltet sein, damit der Ventilator automatisch gesteuert wird:",
+          "manual_control_minutes": "Dauer der manuellen Übersteuerung (optional):"
         }
       },
       "exhaust_fan": {
@@ -41,15 +41,15 @@
       },
       "exhaust_fan_options": {
         "title": "{controlled_entity} konfigurieren",
-        "description": "Automatisieren Sie einen Abluftventilator zur Steuerung der Luftfeuchtigkeit.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "description": "Automatisieren Sie einen Abluftventilator anhand des Anstiegs der absoluten Luftfeuchtigkeit im Raum gegenüber einem Referenzbereich.\n\nKonfigurationshilfe: {github_url}",
         "data": {
           "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
           "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
           "reference_temp_sensor": "Temperatursensor außerhalb des Raums:",
           "reference_humidity_sensor": "Luftfeuchtigkeitssensor außerhalb des Raums:",
-          "rising_threshold": "Steigender Schwellenwert:",
-          "falling_threshold": "Fallender Schwellenwert:",
-          "manual_control_minutes": "Manuelle Steuerung (optional):"
+          "rising_threshold": "Einschaltschwelle der Feuchtigkeitsdifferenz:",
+          "falling_threshold": "Ausschaltschwelle der Feuchtigkeitsdifferenz:",
+          "manual_control_minutes": "Dauer der manuellen Übersteuerung (optional):"
         }
       },
       "light": {
@@ -61,119 +61,111 @@
       },
       "light_options": {
         "title": "{controlled_entity} konfigurieren",
-        "description": "Automatisieren Sie ein Licht basierend auf Beleuchtungsstärke und erforderlichen Zuständen. Alles ist optional.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "description": "Automatisieren Sie ein Licht mit optionalem Auslöser, Beleuchtungsstärkegrenze, erforderlichen Zuständen und automatischer Abschaltung.\n\nKonfigurationshilfe: {github_url}",
         "data": {
-          "brightness_pct": "Helligkeit:",
+          "brightness_pct": "Helligkeit in Prozent:",
           "trigger_entity": "Auslösende Entität (optional):",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Automatisches Ausschalten (optional):",
+          "required_on_entities": "Erforderliche EIN-Entitäten (optional): Alle müssen eingeschaltet sein, bevor das Licht automatisch eingeschaltet werden kann:",
+          "required_off_entities": "Erforderliche AUS-Entitäten (optional): Alle müssen ausgeschaltet sein, bevor das Licht automatisch eingeschaltet werden kann:",
+          "auto_off_minutes": "Verzögerung bis zur automatischen Abschaltung (optional):",
           "illuminance_sensor": "Beleuchtungssensor (optional):",
-          "illuminance_cutoff": "Beleuchtungsgrenze (optional):",
-          "manual_control_minutes": "Manuelle Ausschaltzeit (optional):"
+          "illuminance_cutoff": "Maximale Beleuchtungsstärke für automatisches Einschalten (optional):",
+          "manual_control_minutes": "Dauer der manuellen Übersteuerung (optional):"
         }
       },
       "occupancy": {
-        "title": "Belegungssensor konfigurieren",
-        "description": "Erstellen Sie einen Belegungssensor basierend auf Bewegungssensoren, Türsensoren und anderen Entitäten.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "title": "Belegungssteuerung konfigurieren",
+        "description": "Erstellen Sie eine Raumbelegungssteuerung mit Auslöse- und Halte-Entitäten. Der Name wird für das Steuerungsgerät und den primären Belegungssensor verwendet.\n\nAuslöse-Entitäten STARTEN die Belegung. Verwenden Sie PIR- oder Bewegungsentitäten, die den Raum beim Einschalten als belegt markieren sollen. Wenn Auslöser konfiguriert sind, können Halte-Entitäten die Belegung bei leerem Raum nicht starten.\n\nHalte-Entitäten HALTEN die Belegung aktiv. Verwenden Sie mmWave-, Anwesenheits-, BLE-, Medien-, Computeraktivitäts- oder ähnliche Ein/Aus-Entitäten. Sind keine Auslöser konfiguriert, kann eine Halte-Entität die Belegung auch starten; sie endet, wenn alle Halte-Entitäten ausgeschaltet sind.\n\nLegen Sie bei reinen Auslöser-Konfigurationen eine Abklingzeit fest, damit die Belegung nach dem letzten Auslöser endet.\n\nKonfigurationshilfe: {github_url}",
         "data": {
-          "sensor_name": "Name des Belegungssensors:",
-          "motion_sensors": "Belegung wird für die angegebenen Minuten erkannt, wenn einer dieser Sensoren Bewegung erkennt (optional):",
-          "motion_off_minutes": "Ausschalten nach (optional):",
-          "other_entities": "Belegung wird erkannt, wenn einer dieser Sensoren auf 'Ein' steht (optional):",
-          "door_sensors": "Belegung wird unbegrenzt erkannt, wenn Bewegung in einem Raum erkannt wird und alle Türen geschlossen bleiben – auch nachdem die Bewegung aufgehört hat. Türsensoren sollten nur hinzugefügt werden, wenn alle Zugangspunkte im Bereich Sensoren haben. Türsensoren müssen schnell melden, cloudbasierte Sensoren sollten vermieden werden (optional):",
-          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
-          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):"
+          "sensor_name": "Name der Belegungssteuerung:",
+          "trigger_entities": "Auslöse-Entitäten (optional): Starten die Belegung, sobald eine eingeschaltet wird. Am besten für PIR- oder Bewegungssensoren:",
+          "decay_minutes": "Abklingzeit bei reinen Auslösern (erforderlich, wenn keine Halte-Entitäten konfiguriert sind):",
+          "sustain_entities": "Halte-Entitäten (optional): Halten die Belegung aktiv, solange mindestens eine eingeschaltet ist. Ohne Auslöser können sie die Belegung auch starten:",
+          "required_on_entities": "Erforderliche EIN-Entitäten (optional): Alle müssen eingeschaltet sein, damit Belegung starten oder aktiv bleiben kann:",
+          "required_off_entities": "Erforderliche AUS-Entitäten (optional): Alle müssen ausgeschaltet sein, damit Belegung starten oder aktiv bleiben kann:"
         }
       }
     },
     "error": {
-      "door_needs_motion": "Türsensoren erfordern angegebene Bewegungssensoren.",
-      "duplicate_name": "Eine Integration mit demselben Namen existiert bereits.",
-      "motion_needs_minutes": "Bewegungssensoren erfordern die Angabe von 'Ausschalten nach'.",
-      "occupancy_and_auto_off": "Belegungssensor und automatisches Ausschalten können nicht zusammen verwendet werden.",
-      "occupancy_needs_trigger": "Bewegungssensoren und/oder andere Entitäten müssen angegeben werden.",
-      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich.",
-      "occupancy_needs_entity": "Geben Sie mindestens eine Trigger- oder Sustain-Entität an.",
-      "trigger_only_needs_minutes": "Trigger-only-Belegung erfordert eine Abklingzeit, da keine Sustain-Entitäten konfiguriert sind."
+      "duplicate_name": "Eine Integration mit demselben Namen ist bereits vorhanden.",
+      "occupancy_and_auto_off": "Belegungssensor und automatische Abschaltung können nicht gleichzeitig verwendet werden.",
+      "off_minutes_required": "„Nach Minuten ausschalten“ ist erforderlich.",
+      "occupancy_needs_entity": "Geben Sie mindestens eine Auslöse- oder Halte-Entität an.",
+      "trigger_only_needs_minutes": "Eine reine Auslöser-Belegung benötigt eine Abklingzeit, da keine Halte-Entitäten konfiguriert sind."
     },
     "abort": {
-      "nothing_to_control": "Keine steuerbaren Entitäten verfügbar",
+      "nothing_to_control": "Es sind keine steuerbaren Entitäten verfügbar.",
       "invalid_entity": "Die ausgewählte Entität ist nicht mehr verfügbar.",
-      "invalid_type": "Unbekannter Controller-Typ."
+      "invalid_type": "Unbekannter Steuerungstyp."
     }
   },
   "options": {
     "step": {
       "ceiling_fan": {
         "title": "{controlled_entity} konfigurieren",
-        "description": "Automatisieren Sie einen Deckenventilator für mehr Komfort mithilfe des Summer Simmer Index (SSI) als Komfortwert. {ssi_url}\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "description": "Automatisieren Sie einen Deckenventilator für mehr Komfort anhand des Summer Simmer Index (SSI) als Komfortmaß. {ssi_url}\n\nKonfigurationshilfe: {github_url}",
         "data": {
           "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
           "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
-          "ssi_min": "Der Ventilator startet, wenn der SSI über folgendem Wert liegt:",
-          "ssi_max": "Die Ventilatorgeschwindigkeit wird maximal sein, wenn der SSI über folgendem Wert liegt:",
+          "ssi_min": "Ventilator einschalten, wenn der SSI über folgenden Wert steigt:",
+          "ssi_max": "Maximale Ventilatorgeschwindigkeit verwenden, wenn der SSI über folgenden Wert steigt:",
           "speed_min": "Minimale Ventilatorgeschwindigkeit:",
           "speed_max": "Maximale Ventilatorgeschwindigkeit:",
-          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
-          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):",
-          "manual_control_minutes": "Manuelle Steuerung (optional):"
+          "required_on_entities": "Erforderliche EIN-Entitäten (optional): Alle müssen eingeschaltet sein, damit der Ventilator automatisch gesteuert wird:",
+          "required_off_entities": "Erforderliche AUS-Entitäten (optional): Alle müssen ausgeschaltet sein, damit der Ventilator automatisch gesteuert wird:",
+          "manual_control_minutes": "Dauer der manuellen Übersteuerung (optional):"
         }
       },
       "exhaust_fan": {
         "title": "{controlled_entity} konfigurieren",
-        "description": "Automatisieren Sie einen Abluftventilator zur Steuerung der Luftfeuchtigkeit.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "description": "Automatisieren Sie einen Abluftventilator anhand des Anstiegs der absoluten Luftfeuchtigkeit im Raum gegenüber einem Referenzbereich.\n\nKonfigurationshilfe: {github_url}",
         "data": {
           "temp_sensor": "Temperatursensor im selben Raum wie der zu steuernde Ventilator:",
           "humidity_sensor": "Luftfeuchtigkeitssensor im selben Raum wie der zu steuernde Ventilator:",
           "reference_temp_sensor": "Temperatursensor außerhalb des Raums:",
           "reference_humidity_sensor": "Luftfeuchtigkeitssensor außerhalb des Raums:",
-          "rising_threshold": "Steigender Schwellenwert:",
-          "falling_threshold": "Fallender Schwellenwert:",
-          "manual_control_minutes": "Manuelle Steuerung (optional):"
+          "rising_threshold": "Einschaltschwelle der Feuchtigkeitsdifferenz:",
+          "falling_threshold": "Ausschaltschwelle der Feuchtigkeitsdifferenz:",
+          "manual_control_minutes": "Dauer der manuellen Übersteuerung (optional):"
         }
       },
       "light": {
         "title": "{controlled_entity} konfigurieren",
-        "description": "Automatisieren Sie ein Licht basierend auf Beleuchtungsstärke und erforderlichen Zuständen. Alles ist optional.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "description": "Automatisieren Sie ein Licht mit optionalem Auslöser, Beleuchtungsstärkegrenze, erforderlichen Zuständen und automatischer Abschaltung.\n\nKonfigurationshilfe: {github_url}",
         "data": {
-          "brightness_pct": "Helligkeit:",
+          "brightness_pct": "Helligkeit in Prozent:",
           "trigger_entity": "Auslösende Entität (optional):",
           "illuminance_sensor": "Beleuchtungssensor (optional):",
-          "illuminance_cutoff": "Beleuchtungsgrenze (optional):",
-          "required_on_entities": "The following sensors must all be 'on' for the light to be automatically turned on (optional):",
-          "required_off_entities": "The following sensors must all be 'off' for the light to be automatically turned on (optional):",
-          "auto_off_minutes": "Automatisches Ausschalten (optional):",
-          "manual_control_minutes": "Manuelle Ausschaltzeit (optional):"
+          "illuminance_cutoff": "Maximale Beleuchtungsstärke für automatisches Einschalten (optional):",
+          "required_on_entities": "Erforderliche EIN-Entitäten (optional): Alle müssen eingeschaltet sein, bevor das Licht automatisch eingeschaltet werden kann:",
+          "required_off_entities": "Erforderliche AUS-Entitäten (optional): Alle müssen ausgeschaltet sein, bevor das Licht automatisch eingeschaltet werden kann:",
+          "auto_off_minutes": "Verzögerung bis zur automatischen Abschaltung (optional):",
+          "manual_control_minutes": "Dauer der manuellen Übersteuerung (optional):"
         }
       },
       "occupancy": {
-        "title": "Belegungssensor konfigurieren",
-        "description": "Erstellen Sie einen Belegungssensor basierend auf Bewegungssensoren, Türsensoren und anderen Entitäten.\n\nWenn Sie Hilfe bei der Konfiguration benötigen, finden Sie diese hier: {github_url}",
+        "title": "Belegungssteuerung konfigurieren",
+        "description": "Erstellen Sie eine Raumbelegungssteuerung mit Auslöse- und Halte-Entitäten. Der Name wird für das Steuerungsgerät und den primären Belegungssensor verwendet.\n\nAuslöse-Entitäten STARTEN die Belegung. Verwenden Sie PIR- oder Bewegungsentitäten, die den Raum beim Einschalten als belegt markieren sollen. Wenn Auslöser konfiguriert sind, können Halte-Entitäten die Belegung bei leerem Raum nicht starten.\n\nHalte-Entitäten HALTEN die Belegung aktiv. Verwenden Sie mmWave-, Anwesenheits-, BLE-, Medien-, Computeraktivitäts- oder ähnliche Ein/Aus-Entitäten. Sind keine Auslöser konfiguriert, kann eine Halte-Entität die Belegung auch starten; sie endet, wenn alle Halte-Entitäten ausgeschaltet sind.\n\nLegen Sie bei reinen Auslöser-Konfigurationen eine Abklingzeit fest, damit die Belegung nach dem letzten Auslöser endet.\n\nKonfigurationshilfe: {github_url}",
         "data": {
-          "sensor_name": "Name des Belegungssensors:",
-          "motion_sensors": "Belegung wird für die angegebenen Minuten erkannt, wenn einer dieser Sensoren Bewegung erkennt (optional):",
-          "motion_off_minutes": "Ausschalten nach (optional):",
-          "other_entities": "Belegung wird erkannt, wenn einer dieser Sensoren auf 'Ein' steht (optional):",
-          "door_sensors": "Belegung wird unbegrenzt erkannt, wenn Bewegung in einem Raum erkannt wird und alle Türen geschlossen bleiben – auch nachdem die Bewegung aufgehört hat. Türsensoren sollten nur hinzugefügt werden, wenn alle Zugangspunkte im Bereich Sensoren haben. Türsensoren müssen schnell melden, cloudbasierte Sensoren sollten vermieden werden (optional):",
-          "required_on_entities": "Die folgenden Sensoren müssen alle auf 'Ein' stehen, damit Belegung erkannt wird (optional):",
-          "required_off_entities": "Die folgenden Sensoren müssen alle auf 'Aus' stehen, damit Belegung erkannt wird (optional):"
+          "sensor_name": "Name der Belegungssteuerung:",
+          "trigger_entities": "Auslöse-Entitäten (optional): Starten die Belegung, sobald eine eingeschaltet wird. Am besten für PIR- oder Bewegungssensoren:",
+          "decay_minutes": "Abklingzeit bei reinen Auslösern (erforderlich, wenn keine Halte-Entitäten konfiguriert sind):",
+          "sustain_entities": "Halte-Entitäten (optional): Halten die Belegung aktiv, solange mindestens eine eingeschaltet ist. Ohne Auslöser können sie die Belegung auch starten:",
+          "required_on_entities": "Erforderliche EIN-Entitäten (optional): Alle müssen eingeschaltet sein, damit Belegung starten oder aktiv bleiben kann:",
+          "required_off_entities": "Erforderliche AUS-Entitäten (optional): Alle müssen ausgeschaltet sein, damit Belegung starten oder aktiv bleiben kann:"
         }
       }
     },
     "error": {
-      "duplicate_name": "Eine Integration mit demselben Namen existiert bereits.",
-      "occupancy_and_auto_off": "Belegungssensor und automatisches Ausschalten können nicht zusammen verwendet werden.",
-      "door_needs_motion": "Türsensoren erfordern angegebene Bewegungssensoren.",
-      "motion_needs_minutes": "Bewegungssensoren erfordern die Angabe von 'Ausschalten nach'.",
-      "occupancy_needs_trigger": "Bewegungssensoren und/oder andere Entitäten müssen angegeben werden.",
-      "off_minutes_required": "'Ausschalten nach Minuten' ist erforderlich.",
-      "occupancy_needs_entity": "Geben Sie mindestens eine Trigger- oder Sustain-Entität an.",
-      "trigger_only_needs_minutes": "Trigger-only-Belegung erfordert eine Abklingzeit, da keine Sustain-Entitäten konfiguriert sind."
+      "duplicate_name": "Eine Integration mit demselben Namen ist bereits vorhanden.",
+      "occupancy_and_auto_off": "Belegungssensor und automatische Abschaltung können nicht gleichzeitig verwendet werden.",
+      "off_minutes_required": "„Nach Minuten ausschalten“ ist erforderlich.",
+      "occupancy_needs_entity": "Geben Sie mindestens eine Auslöse- oder Halte-Entität an.",
+      "trigger_only_needs_minutes": "Eine reine Auslöser-Belegung benötigt eine Abklingzeit, da keine Halte-Entitäten konfiguriert sind."
     },
     "abort": {
       "invalid_entity": "Die ausgewählte Entität ist nicht mehr verfügbar.",
-      "invalid_type": "Unbekannter Controller-Typ."
+      "invalid_type": "Unbekannter Steuerungstyp."
     }
   }
 }
