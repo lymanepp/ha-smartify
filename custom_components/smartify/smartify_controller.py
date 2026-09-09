@@ -330,11 +330,12 @@ class SmartifyController(ABC):
         if new_state.state in IGNORE_STATES:
             return
 
-        if (
-            old_state is not None
-            and old_state.state == new_state.state
-            and old_state.attributes == new_state.attributes
-        ):
+        # Controllers react to entity state transitions. Home Assistant may emit
+        # state_changed events when only attributes change; forwarding those as
+        # transitions can retrigger automations (for example, an occupancy PIR
+        # that remains ON while an attribute is updated would restart its decay
+        # timer indefinitely).
+        if old_state is not None and old_state.state == new_state.state:
             return
 
         _LOGGER.debug(

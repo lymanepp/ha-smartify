@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pytest
 from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.smartify.const import Config
@@ -99,6 +99,30 @@ async def test_trigger_only_retrigger_restarts_decay_timer(
 
     assert controller.state == MyState.TRIGGERED_OCCUPIED
     assert timer_calls == [timedelta(minutes=5), timedelta(minutes=5)]
+
+
+@pytest.mark.asyncio
+async def test_trigger_only_attribute_update_does_not_restart_decay_timer(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    trigger = "binary_sensor.office_pir"
+    controller = OccupancyController(
+        hass,
+        _entry({Config.TRIGGER_ENTITIES: [trigger], Config.DECAY_MINUTES: 5}),
+    )
+    timer_calls = _track_timer_calls(monkeypatch, controller)
+
+    old_state = State(trigger, STATE_ON, {"signal_strength": 10})
+    new_state = State(trigger, STATE_ON, {"signal_strength": 20})
+
+    hass.states.async_set(trigger, STATE_ON, {"signal_strength": 10})
+    await controller._on_state_change(None, old_state)
+    hass.states.async_set(trigger, STATE_ON, {"signal_strength": 20})
+    await controller._on_state_change(old_state, new_state)
+
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+    assert timer_calls == [timedelta(minutes=5)]
 
 
 @pytest.mark.asyncio

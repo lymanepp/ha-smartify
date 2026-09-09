@@ -40,6 +40,22 @@ async def test_state_change_ignored_for_identical_states(hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
+async def test_state_change_ignored_when_only_attributes_change(hass: HomeAssistant):
+    controller = DummyController(
+        hass,
+        MockConfigEntry(),
+        "off",
+    )
+
+    old_state = State("binary_sensor.test", "on", {"signal_strength": 10})
+    new_state = State("binary_sensor.test", "on", {"signal_strength": 20})
+
+    await controller._on_state_change(old_state, new_state)
+
+    assert not hasattr(controller, "last_state")
+
+
+@pytest.mark.asyncio
 async def test_fire_event_dispatches(hass: HomeAssistant):
     controller = DummyController(
         hass,
