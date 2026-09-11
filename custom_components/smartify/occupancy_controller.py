@@ -151,6 +151,7 @@ class OccupancyController(SmartifyController):
     def diagnostic_attributes(self) -> dict[str, object]:
         """Return diagnostic attributes for the controller state sensor."""
         return {
+            **super().diagnostic_attributes,
             "strategy": self.occupancy_strategy,
             "trigger_entities": self._trigger_entities,
             "sustain_entities": self._sustain_entities,

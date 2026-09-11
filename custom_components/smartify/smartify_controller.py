@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
+from homeassistant.const import ATTR_ENTITY_ID, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import (
     CALLBACK_TYPE,
     Context,
@@ -18,13 +18,36 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers.event import (
+    async_call_later,
     async_track_point_in_utc_time,
     async_track_state_change_event,
 )
 from homeassistant.util import dt
 
-from .const import _LOGGER, IGNORE_STATES, Config
-from .entry_types import SmartifyEntrySource, YamlControllerEntry
+from .const import _LOGGER, IGNORE_STATES, Config, ControllerType
+from .entry_types import SmartifyEntrySource
+
+_REFERENCE_VALIDATION_DELAY = 10.0
+_SINGLE_ENTITY_REFERENCE_KEYS = (
+    Config.CONTROLLED_ENTITY,
+    Config.TEMP_SENSOR,
+    Config.HUMIDITY_SENSOR,
+    Config.REFERENCE_TEMP_SENSOR,
+    Config.REFERENCE_HUMIDITY_SENSOR,
+    Config.TRIGGER_ENTITY,
+    Config.ILLUMINANCE_SENSOR,
+)
+_MULTI_ENTITY_REFERENCE_KEYS = (
+    Config.TRIGGER_ENTITIES,
+    Config.SUSTAIN_ENTITIES,
+    Config.REQUIRED_ON_ENTITIES,
+    Config.REQUIRED_OFF_ENTITIES,
+)
+_EXPECTED_CONTROLLED_DOMAINS = {
+    str(ControllerType.LIGHT): "light",
+    str(ControllerType.CEILING_FAN): "fan",
+    str(ControllerType.EXHAUST_FAN): "fan",
+}
 
 
 class SmartifyController(ABC):
@@ -54,6 +77,8 @@ class SmartifyController(ABC):
         self._service_context_ids: set[str] = set()
         self._transition_lock = asyncio.Lock()
         self._shutting_down = False
+        self._reference_problems: dict[str, str] = {}
+        self._reference_validation_unsub: CALLBACK_TYPE | None = None
 
     async def async_setup(self, hass: HomeAssistant) -> None:
         """Subscribe to state changes and seed the controller from current states."""
@@ -74,8 +99,20 @@ class SmartifyController(ABC):
             new_state = event.data.get("new_state")
 
             if new_state is None:
+                self._schedule_reference_validation()
                 return
 
+            problem = self._reference_problem_for_state(
+                new_state.entity_id, new_state
+            )
+            if problem is not None:
+                if problem.startswith("wrong_domain:"):
+                    self._set_reference_problem(new_state.entity_id, problem)
+                else:
+                    self._schedule_reference_validation()
+                return
+
+            self._clear_reference_problem(new_state.entity_id)
             await self._on_state_change(old_state, new_state)
 
         _LOGGER.debug(
@@ -102,25 +139,19 @@ class SmartifyController(ABC):
             state = hass.states.get(entity_id)
 
             if state is None:
-                # A YAML controller may legitimately depend on another YAML
-                # entity that has not been added yet. The listener above makes
-                # that safe, so do not emit a misleading startup warning.
-                log = (
-                    _LOGGER.debug
-                    if isinstance(self.config_entry, YamlControllerEntry)
-                    else _LOGGER.warning
-                )
-                log(
-                    "%s; referenced entity '%s' is missing.",
-                    self.name,
-                    entity_id,
-                )
                 continue
 
             if self.name is None and entity_id == self.controlled_entity:
                 self.name = state.name
 
             await self._on_state_change(None, state)
+
+        # Do not diagnose missing references synchronously during startup. YAML
+        # controllers can legitimately be created before their dependencies.
+        # Validate after a short grace period, then report only persistent
+        # problems. This same debounce is reused if an entity later disappears
+        # or becomes unavailable during an integration reload.
+        self._schedule_reference_validation()
 
     def async_unload(self) -> None:
         """Call when controller is being unloaded."""
@@ -136,6 +167,7 @@ class SmartifyController(ABC):
         self._shutting_down = True
 
         self._cancel_timer()
+        self._cancel_reference_validation()
 
         while self._unsubscribers:
             unsubscriber = self._unsubscribers.pop()
@@ -187,6 +219,170 @@ class SmartifyController(ABC):
         state = self.hass.states.get(entity)
 
         return bool(state and state.state == value)
+
+    @property
+    def diagnostic_attributes(self) -> dict[str, object]:
+        """Return common reference-health diagnostics for the state sensor."""
+        missing = sorted(
+            entity_id
+            for entity_id, problem in self._reference_problems.items()
+            if problem == "missing"
+        )
+        unavailable = sorted(
+            entity_id
+            for entity_id, problem in self._reference_problems.items()
+            if problem == "unavailable"
+        )
+        unknown = sorted(
+            entity_id
+            for entity_id, problem in self._reference_problems.items()
+            if problem == "unknown"
+        )
+        wrong_domain = sorted(
+            entity_id
+            for entity_id, problem in self._reference_problems.items()
+            if problem.startswith("wrong_domain:")
+        )
+        return {
+            "healthy": not self._reference_problems,
+            "reference_validation_pending": self._reference_validation_unsub is not None,
+            "tracked_entities": self.tracked_entity_ids,
+            "reference_roles": {
+                entity_id: self._reference_roles(entity_id)
+                for entity_id in self.tracked_entity_ids
+            },
+            "missing_entities": missing,
+            "unavailable_entities": unavailable,
+            "unknown_entities": unknown,
+            "wrong_domain_entities": wrong_domain,
+            "reference_problems": dict(sorted(self._reference_problems.items())),
+        }
+
+    def _cancel_reference_validation(self) -> None:
+        """Cancel a pending reference-health validation."""
+        if self._reference_validation_unsub is None:
+            return
+        self._reference_validation_unsub()
+        self._reference_validation_unsub = None
+
+    def _schedule_reference_validation(self) -> None:
+        """Validate entity references after a short settling period."""
+        self._cancel_reference_validation()
+
+        @callback
+        def validate_references(_: datetime) -> None:
+            self._reference_validation_unsub = None
+            if not self._shutting_down:
+                self._validate_references()
+                self._update_listeners()
+
+        self._reference_validation_unsub = async_call_later(
+            self.hass, _REFERENCE_VALIDATION_DELAY, validate_references
+        )
+
+    def _reference_roles(self, entity_id: str) -> list[str]:
+        """Return configuration fields that reference an entity id."""
+        roles: list[str] = []
+        for key in _SINGLE_ENTITY_REFERENCE_KEYS:
+            if self.data.get(key) == entity_id:
+                roles.append(str(key))
+        for key in _MULTI_ENTITY_REFERENCE_KEYS:
+            if entity_id in self.data.get(key, []):
+                roles.append(str(key))
+        return roles or ["tracked_entity"]
+
+    def _expected_controlled_domain(self) -> str | None:
+        """Return the required domain for the controlled entity, if any."""
+        controller_type = self.data.get(Config.CONTROLLER_TYPE)
+        return _EXPECTED_CONTROLLED_DOMAINS.get(str(controller_type))
+
+    def _reference_problem_for_state(
+        self, entity_id: str, state: State
+    ) -> str | None:
+        """Return the current problem for an existing referenced entity."""
+        if state.state == STATE_UNAVAILABLE:
+            return "unavailable"
+        if state.state == STATE_UNKNOWN:
+            return "unknown"
+
+        if entity_id == self.controlled_entity:
+            expected_domain = self._expected_controlled_domain()
+            actual_domain = entity_id.partition(".")[0]
+            if expected_domain is not None and actual_domain != expected_domain:
+                return f"wrong_domain:{expected_domain}"
+
+        return None
+
+    def _validate_references(self) -> None:
+        """Validate all configured entity references and report persistent issues."""
+        for entity_id in self.tracked_entity_ids:
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                self._set_reference_problem(entity_id, "missing")
+                continue
+
+            if problem := self._reference_problem_for_state(entity_id, state):
+                self._set_reference_problem(entity_id, problem)
+                continue
+
+            self._clear_reference_problem(entity_id)
+
+    def _set_reference_problem(self, entity_id: str, problem: str) -> None:
+        """Record and log a reference problem once per state transition."""
+        if self._reference_problems.get(entity_id) == problem:
+            return
+
+        self._reference_problems[entity_id] = problem
+        roles = ", ".join(self._reference_roles(entity_id))
+
+        if problem == "missing":
+            _LOGGER.error(
+                "%s; configuration problem: %s references '%s', but that entity "
+                "does not exist in Home Assistant's state machine.",
+                self.name or self.config_entry.title,
+                roles,
+                entity_id,
+            )
+        elif problem == "unavailable":
+            _LOGGER.warning(
+                "%s; reference problem: %s entity '%s' is unavailable.",
+                self.name or self.config_entry.title,
+                roles,
+                entity_id,
+            )
+        elif problem == "unknown":
+            _LOGGER.warning(
+                "%s; reference problem: %s entity '%s' has unknown state.",
+                self.name or self.config_entry.title,
+                roles,
+                entity_id,
+            )
+        elif problem.startswith("wrong_domain:"):
+            expected_domain = problem.split(":", 1)[1]
+            _LOGGER.error(
+                "%s; configuration problem: %s references '%s', but the controlled "
+                "entity must be in the '%s' domain.",
+                self.name or self.config_entry.title,
+                roles,
+                entity_id,
+                expected_domain,
+            )
+
+        self._update_listeners()
+
+    def _clear_reference_problem(self, entity_id: str) -> None:
+        """Clear a reference problem and notify diagnostics when it recovers."""
+        previous = self._reference_problems.pop(entity_id, None)
+        if previous is None:
+            return
+
+        _LOGGER.info(
+            "%s; referenced entity '%s' recovered from %s.",
+            self.name or self.config_entry.title,
+            entity_id,
+            previous,
+        )
+        self._update_listeners()
 
     def _cancel_timer(self) -> None:
         """Cancel active timer."""
