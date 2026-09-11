@@ -207,8 +207,14 @@ async def _async_replace_yaml_controllers(
         controllers.update(new_controllers)
         runtime.entry_ids = list(new_controllers)
 
+        # YAML controllers must start immediately. Their tracked entities may
+        # not exist yet during Home Assistant startup, but Smartify registers
+        # state listeners before taking its initial snapshot, so late-created
+        # dependencies are handled correctly. Deferring YAML controller setup
+        # until EVENT_HOMEASSISTANT_STARTED can leave the controller entirely
+        # uninitialized when Smartify itself is loaded after that event.
         for controller in new_controllers.values():
-            await _async_start_controller(hass, controller)
+            await controller.async_setup(hass)
 
         if reload_entities:
             await asyncio.gather(
