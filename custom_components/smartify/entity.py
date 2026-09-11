@@ -9,6 +9,7 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.loader import async_get_custom_components
 
 from .const import DOMAIN, NAME
+from .entry_types import YamlControllerEntry
 from .smartify_controller import SmartifyController
 
 # The integration version is static for the lifetime of the process, so resolve
@@ -50,12 +51,20 @@ class SmartifyEntity(Entity):
             f"{entry_id}_{unique_id_suffix}" if unique_id_suffix else entry_id
         )
         self._attr_has_entity_name = True
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry_id)},
-            entry_type=DeviceEntryType.SERVICE,
-            name=controller.config_entry.title,
-            manufacturer=NAME,
-        )
+        # Home Assistant only allows an entity to claim a Device Registry
+        # device when that device is owned by a real config entry. Native YAML
+        # controllers intentionally use an in-memory YamlControllerEntry, so
+        # their entities must remain device-less. HA 2026.9 warns about this
+        # and HA 2027.8 will reject the old behavior.
+        if isinstance(controller.config_entry, YamlControllerEntry):
+            self._attr_device_info = None
+        else:
+            self._attr_device_info = DeviceInfo(
+                identifiers={(DOMAIN, entry_id)},
+                entry_type=DeviceEntryType.SERVICE,
+                name=controller.config_entry.title,
+                manufacturer=NAME,
+            )
 
     async def async_added_to_hass(self) -> None:
         """Set up a listener and load data."""

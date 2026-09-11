@@ -24,7 +24,7 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt
 
 from .const import _LOGGER, IGNORE_STATES, Config
-from .entry_types import SmartifyEntrySource
+from .entry_types import SmartifyEntrySource, YamlControllerEntry
 
 
 class SmartifyController(ABC):
@@ -56,27 +56,9 @@ class SmartifyController(ABC):
         self._shutting_down = False
 
     async def async_setup(self, hass: HomeAssistant) -> None:
-        """Subscribe to state change events for all tracked entities."""
+        """Subscribe to state changes and seed the controller from current states."""
 
         self.tracked_entity_ids = list(dict.fromkeys(self.tracked_entity_ids))
-
-        initial_states: list[State] = []
-
-        for entity_id in self.tracked_entity_ids:
-            state = hass.states.get(entity_id)
-
-            if state is None:
-                _LOGGER.warning(
-                    "%s; referenced entity '%s' is missing.",
-                    self.name,
-                    entity_id,
-                )
-                continue
-
-            if self.name is None and entity_id == self.controlled_entity:
-                self.name = state.name
-
-            initial_states.append(state)
 
         async def on_state_event(event: Event) -> None:
             if self._shutting_down:
@@ -103,6 +85,11 @@ class SmartifyController(ABC):
             self.tracked_entity_ids,
         )
 
+        # Register first, then take the startup snapshot. This closes the race
+        # where a YAML-created dependency (for example a Smartify occupancy
+        # sensor) can appear after the initial lookup but before the listener
+        # exists. If it is still absent, its first state_changed event will be
+        # handled normally when the entity is added.
         self._unsubscribers.append(
             async_track_state_change_event(
                 hass,
@@ -111,7 +98,28 @@ class SmartifyController(ABC):
             )
         )
 
-        for state in initial_states:
+        for entity_id in self.tracked_entity_ids:
+            state = hass.states.get(entity_id)
+
+            if state is None:
+                # A YAML controller may legitimately depend on another YAML
+                # entity that has not been added yet. The listener above makes
+                # that safe, so do not emit a misleading startup warning.
+                log = (
+                    _LOGGER.debug
+                    if isinstance(self.config_entry, YamlControllerEntry)
+                    else _LOGGER.warning
+                )
+                log(
+                    "%s; referenced entity '%s' is missing.",
+                    self.name,
+                    entity_id,
+                )
+                continue
+
+            if self.name is None and entity_id == self.controlled_entity:
+                self.name = state.name
+
             await self._on_state_change(None, state)
 
     def async_unload(self) -> None:
