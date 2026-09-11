@@ -15,6 +15,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from . import get_controller, async_setup_yaml_platform
 from .const import Config, ControllerType
 from .entity import SmartifyEntity
+from .entry_types import YamlControllerEntry
 from .smartify_controller import SmartifyController
 
 ENTITY_DESCRIPTIONS = [
@@ -89,8 +90,15 @@ class SmartifyBinarySensor(SmartifyEntity, BinarySensorEntity):
         """Initialize the sensor class."""
         super().__init__(controller)
         self.entity_description = entity_description
-        # Primary entity: use the device/controller name without adding a suffix.
-        self._attr_name = None
+        if isinstance(controller.config_entry, YamlControllerEntry):
+            # YAML entities are device-less, so give the primary entity a full
+            # standalone name and a clean object-id suggestion.
+            self._attr_name = controller.config_entry.title
+            self._attr_suggested_object_id = controller.config_entry.title
+        else:
+            # Config-entry entities use the device/controller name without adding
+            # a suffix.
+            self._attr_name = None
 
     @property
     def is_on(self):

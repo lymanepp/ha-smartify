@@ -50,7 +50,13 @@ class SmartifyEntity(Entity):
         self._attr_unique_id = (
             f"{entry_id}_{unique_id_suffix}" if unique_id_suffix else entry_id
         )
-        self._attr_has_entity_name = True
+        # YAML-backed entities have no Device Registry device, so they must use
+        # complete standalone names. Config-entry entities keep HA's normal
+        # device-relative entity naming.
+        self._attr_has_entity_name = not isinstance(
+            controller.config_entry, YamlControllerEntry
+        )
+
         # Home Assistant only allows an entity to claim a Device Registry
         # device when that device is owned by a real config entry. Native YAML
         # controllers intentionally use an in-memory YamlControllerEntry, so

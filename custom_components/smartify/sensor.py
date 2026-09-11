@@ -12,6 +12,7 @@ from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from . import get_controller, async_setup_yaml_platform
 from .smartify_controller import SmartifyController
 from .entity import SmartifyEntity
+from .entry_types import YamlControllerEntry
 
 CONTROLLER_STATE_DESCRIPTION = SensorEntityDescription(
     key="controller_state",
@@ -82,7 +83,13 @@ class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
         super().__init__(controller, unique_id_suffix=entity_description.key)
         self.controller: SmartifyController = controller
         self.entity_description = entity_description
-        self._attr_name = entity_description.name
+        if isinstance(controller.config_entry, YamlControllerEntry):
+            # YAML entities are device-less, so the diagnostic entity needs the
+            # controller name as part of its standalone name/object ID.
+            self._attr_name = f"{controller.config_entry.title} {entity_description.name}"
+            self._attr_suggested_object_id = self._attr_name
+        else:
+            self._attr_name = entity_description.name
         self._attr_icon = entity_description.icon
         self._attr_entity_category = entity_description.entity_category
 
