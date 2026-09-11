@@ -22,9 +22,14 @@ from homeassistant.helpers.event import (
     async_track_point_in_utc_time,
     async_track_state_change_event,
 )
+from homeassistant.helpers.issue_registry import (
+    IssueSeverity,
+    async_create_issue,
+    async_delete_issue,
+)
 from homeassistant.util import dt
 
-from .const import _LOGGER, IGNORE_STATES, Config, ControllerType
+from .const import DOMAIN, _LOGGER, IGNORE_STATES, Config, ControllerType
 from .entry_types import SmartifyEntrySource
 
 _REFERENCE_VALIDATION_DELAY = 10.0
@@ -169,6 +174,10 @@ class SmartifyController(ABC):
         self._cancel_timer()
         self._cancel_reference_validation()
 
+        for entity_id in self.tracked_entity_ids:
+            async_delete_issue(self.hass, DOMAIN, self._reference_issue_id(entity_id))
+        self._reference_problems.clear()
+
         while self._unsubscribers:
             unsubscriber = self._unsubscribers.pop()
 
@@ -220,44 +229,6 @@ class SmartifyController(ABC):
 
         return bool(state and state.state == value)
 
-    @property
-    def diagnostic_attributes(self) -> dict[str, object]:
-        """Return common reference-health diagnostics for the state sensor."""
-        missing = sorted(
-            entity_id
-            for entity_id, problem in self._reference_problems.items()
-            if problem == "missing"
-        )
-        unavailable = sorted(
-            entity_id
-            for entity_id, problem in self._reference_problems.items()
-            if problem == "unavailable"
-        )
-        unknown = sorted(
-            entity_id
-            for entity_id, problem in self._reference_problems.items()
-            if problem == "unknown"
-        )
-        wrong_domain = sorted(
-            entity_id
-            for entity_id, problem in self._reference_problems.items()
-            if problem.startswith("wrong_domain:")
-        )
-        return {
-            "healthy": not self._reference_problems,
-            "reference_validation_pending": self._reference_validation_unsub is not None,
-            "tracked_entities": self.tracked_entity_ids,
-            "reference_roles": {
-                entity_id: self._reference_roles(entity_id)
-                for entity_id in self.tracked_entity_ids
-            },
-            "missing_entities": missing,
-            "unavailable_entities": unavailable,
-            "unknown_entities": unknown,
-            "wrong_domain_entities": wrong_domain,
-            "reference_problems": dict(sorted(self._reference_problems.items())),
-        }
-
     def _cancel_reference_validation(self) -> None:
         """Cancel a pending reference-health validation."""
         if self._reference_validation_unsub is None:
@@ -274,7 +245,6 @@ class SmartifyController(ABC):
             self._reference_validation_unsub = None
             if not self._shutting_down:
                 self._validate_references()
-                self._update_listeners()
 
         self._reference_validation_unsub = async_call_later(
             self.hass, _REFERENCE_VALIDATION_DELAY, validate_references
@@ -327,9 +297,62 @@ class SmartifyController(ABC):
 
             self._clear_reference_problem(entity_id)
 
+    def _reference_issue_id(self, entity_id: str) -> str:
+        """Return a stable Repairs issue id for a referenced entity."""
+        safe_entity_id = entity_id.replace(".", "_")
+        return f"reference_{self.config_entry.entry_id}_{safe_entity_id}"
+
+    def _sync_reference_issue(self, entity_id: str, problem: str) -> None:
+        """Create, update, or remove an actionable Repairs issue."""
+        issue_id = self._reference_issue_id(entity_id)
+        roles = ", ".join(self._reference_roles(entity_id))
+        controller_name = self.name or self.config_entry.title
+
+        if problem == "missing":
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                is_persistent=True,
+                severity=IssueSeverity.ERROR,
+                translation_key="missing_reference",
+                translation_placeholders={
+                    "controller": controller_name,
+                    "entity_id": entity_id,
+                    "roles": roles,
+                },
+            )
+            return
+
+        if problem.startswith("wrong_domain:"):
+            expected_domain = problem.split(":", 1)[1]
+            async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                is_persistent=True,
+                severity=IssueSeverity.ERROR,
+                translation_key="wrong_reference_domain",
+                translation_placeholders={
+                    "controller": controller_name,
+                    "entity_id": entity_id,
+                    "expected_domain": expected_domain,
+                    "roles": roles,
+                },
+            )
+            return
+
+        # unavailable/unknown are runtime conditions, not configuration
+        # defects. Keep them in the log without leaving a Repairs issue.
+        async_delete_issue(self.hass, DOMAIN, issue_id)
+
     def _set_reference_problem(self, entity_id: str, problem: str) -> None:
-        """Record and log a reference problem once per state transition."""
-        if self._reference_problems.get(entity_id) == problem:
+        """Record and report a reference problem once per state transition."""
+        previous = self._reference_problems.get(entity_id)
+        self._sync_reference_issue(entity_id, problem)
+        if previous == problem:
             return
 
         self._reference_problems[entity_id] = problem
@@ -368,10 +391,9 @@ class SmartifyController(ABC):
                 expected_domain,
             )
 
-        self._update_listeners()
-
     def _clear_reference_problem(self, entity_id: str) -> None:
-        """Clear a reference problem and notify diagnostics when it recovers."""
+        """Clear a reference problem and its Repairs issue when it recovers."""
+        async_delete_issue(self.hass, DOMAIN, self._reference_issue_id(entity_id))
         previous = self._reference_problems.pop(entity_id, None)
         if previous is None:
             return
@@ -382,7 +404,6 @@ class SmartifyController(ABC):
             entity_id,
             previous,
         )
-        self._update_listeners()
 
     def _cancel_timer(self) -> None:
         """Cancel active timer."""

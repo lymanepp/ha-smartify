@@ -167,5 +167,15 @@
       "invalid_entity": "La entidad seleccionada ya no está disponible.",
       "invalid_type": "Tipo de controlador desconocido."
     }
+  },
+  "issues": {
+    "missing_reference": {
+      "title": "Falta una referencia de entidad de Smartify",
+      "description": "**{controller}** hace referencia a `{entity_id}` como **{roles}**, pero esa entidad no existe en Home Assistant. Corrige el ID de entidad en la configuración de Smartify y, a continuación, vuelve a cargar o reinicia Smartify."
+    },
+    "wrong_reference_domain": {
+      "title": "La entidad controlada por Smartify tiene el dominio incorrecto",
+      "description": "**{controller}** hace referencia a `{entity_id}` como **{roles}**, pero este controlador requiere una entidad del dominio `{expected_domain}`. Corrige la configuración de Smartify y, a continuación, vuelve a cargar o reinicia Smartify."
+    }
   }
 }

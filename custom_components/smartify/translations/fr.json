@@ -167,5 +167,15 @@
       "invalid_entity": "L’entité sélectionnée n’est plus disponible.",
       "invalid_type": "Type de contrôleur inconnu."
     }
+  },
+  "issues": {
+    "missing_reference": {
+      "title": "Une référence d'entité Smartify est manquante",
+      "description": "**{controller}** référence `{entity_id}` en tant que **{roles}**, mais cette entité n'existe pas dans Home Assistant. Corrigez l'identifiant de l'entité dans la configuration Smartify, puis rechargez ou redémarrez Smartify."
+    },
+    "wrong_reference_domain": {
+      "title": "L'entité contrôlée par Smartify utilise le mauvais domaine",
+      "description": "**{controller}** référence `{entity_id}` en tant que **{roles}**, mais ce contrôleur exige une entité du domaine `{expected_domain}`. Corrigez la configuration Smartify, puis rechargez ou redémarrez Smartify."
+    }
   }
 }

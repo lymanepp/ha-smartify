@@ -1,6 +1,7 @@
-"""Tests for Smartify reference-health diagnostics."""
+"""Tests for Smartify reference-health reporting."""
 
 import logging
+from unittest.mock import patch
 
 from homeassistant.const import STATE_OFF, STATE_UNAVAILABLE
 
@@ -23,8 +24,8 @@ def _light_entry(controlled_entity: str, **extra) -> YamlControllerEntry:
     )
 
 
-def test_missing_reference_is_reported(hass, caplog):
-    """A persistent missing reference is an actionable configuration error."""
+def test_missing_reference_creates_repair(hass, caplog):
+    """A persistent missing reference creates an actionable Repairs issue."""
     controller = LightController(
         hass,
         _light_entry(
@@ -34,22 +35,27 @@ def test_missing_reference_is_reported(hass, caplog):
     )
     hass.states.async_set("light.test_light", STATE_OFF)
 
-    with caplog.at_level(logging.ERROR, logger="custom_components.smartify"):
+    with (
+        patch(
+            "custom_components.smartify.smartify_controller.async_create_issue"
+        ) as create,
+        caplog.at_level(logging.ERROR, logger="custom_components.smartify"),
+    ):
         controller._validate_references()
 
-    assert controller.diagnostic_attributes["healthy"] is False
-    assert controller.diagnostic_attributes["missing_entities"] == [
-        "binary_sensor.missing_motion"
-    ]
-    assert controller.diagnostic_attributes["reference_roles"][
-        "binary_sensor.missing_motion"
-    ] == ["trigger_entity"]
+    create.assert_called_once()
+    kwargs = create.call_args.kwargs
+    assert kwargs["translation_key"] == "missing_reference"
+    assert (
+        kwargs["translation_placeholders"]["entity_id"]
+        == "binary_sensor.missing_motion"
+    )
     assert "binary_sensor.missing_motion" in caplog.text
     assert "does not exist in Home Assistant's state machine" in caplog.text
 
 
-def test_unavailable_reference_is_reported(hass, caplog):
-    """An unavailable dependency is reported separately from a missing one."""
+def test_unavailable_reference_logs_without_repair(hass, caplog):
+    """An unavailable dependency is a runtime warning, not a Repairs issue."""
     controller = LightController(
         hass,
         _light_entry(
@@ -60,18 +66,21 @@ def test_unavailable_reference_is_reported(hass, caplog):
     hass.states.async_set("light.test_light", STATE_OFF)
     hass.states.async_set("binary_sensor.motion", STATE_UNAVAILABLE)
 
-    with caplog.at_level(logging.WARNING, logger="custom_components.smartify"):
+    with (
+        patch(
+            "custom_components.smartify.smartify_controller.async_create_issue"
+        ) as create,
+        caplog.at_level(logging.WARNING, logger="custom_components.smartify"),
+    ):
         controller._validate_references()
 
-    assert controller.diagnostic_attributes["unavailable_entities"] == [
-        "binary_sensor.motion"
-    ]
+    create.assert_not_called()
     assert "binary_sensor.motion" in caplog.text
     assert "is unavailable" in caplog.text
 
 
-def test_reference_recovery_clears_problem(hass, caplog):
-    """A recovered dependency clears diagnostics and logs recovery once."""
+def test_reference_recovery_deletes_repair(hass, caplog):
+    """A recovered dependency removes its Repairs issue and logs recovery once."""
     controller = LightController(
         hass,
         _light_entry(
@@ -80,31 +89,36 @@ def test_reference_recovery_clears_problem(hass, caplog):
         ),
     )
     hass.states.async_set("light.test_light", STATE_OFF)
-
     controller._validate_references()
-    assert controller.diagnostic_attributes["healthy"] is False
 
     hass.states.async_set("binary_sensor.motion", STATE_OFF)
-    with caplog.at_level(logging.INFO, logger="custom_components.smartify"):
+    with (
+        patch(
+            "custom_components.smartify.smartify_controller.async_delete_issue"
+        ) as delete,
+        caplog.at_level(logging.INFO, logger="custom_components.smartify"),
+    ):
         controller._validate_references()
 
-    assert controller.diagnostic_attributes["healthy"] is True
-    assert controller.diagnostic_attributes["reference_problems"] == {}
+    delete.assert_called_once()
     assert "recovered from missing" in caplog.text
 
 
-def test_wrong_controlled_entity_domain_is_reported(hass, caplog):
-    """A light controller cannot silently point at a non-light entity."""
+def test_wrong_controlled_entity_domain_creates_repair(hass, caplog):
+    """A wrong controlled-entity domain creates an actionable Repairs issue."""
     controller = LightController(hass, _light_entry("switch.test_light"))
     hass.states.async_set("switch.test_light", STATE_OFF)
 
-    with caplog.at_level(logging.ERROR, logger="custom_components.smartify"):
+    with (
+        patch(
+            "custom_components.smartify.smartify_controller.async_create_issue"
+        ) as create,
+        caplog.at_level(logging.ERROR, logger="custom_components.smartify"),
+    ):
         controller._validate_references()
 
-    assert controller.diagnostic_attributes["wrong_domain_entities"] == [
-        "switch.test_light"
-    ]
-    assert controller.diagnostic_attributes["reference_problems"] == {
-        "switch.test_light": "wrong_domain:light"
-    }
+    create.assert_called_once()
+    kwargs = create.call_args.kwargs
+    assert kwargs["translation_key"] == "wrong_reference_domain"
+    assert kwargs["translation_placeholders"]["expected_domain"] == "light"
     assert "must be in the 'light' domain" in caplog.text

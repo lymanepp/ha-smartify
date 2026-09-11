@@ -167,5 +167,15 @@
       "invalid_entity": "The selected entity is no longer available.",
       "invalid_type": "Unknown controller type."
     }
+  },
+  "issues": {
+    "missing_reference": {
+      "title": "Smartify entity reference is missing",
+      "description": "**{controller}** references `{entity_id}` as **{roles}**, but that entity does not exist in Home Assistant. Correct the entity ID in the Smartify configuration, then reload or restart Smartify."
+    },
+    "wrong_reference_domain": {
+      "title": "Smartify controlled entity has the wrong domain",
+      "description": "**{controller}** references `{entity_id}` as **{roles}**, but this controller requires an entity in the `{expected_domain}` domain. Correct the Smartify configuration, then reload or restart Smartify."
+    }
   }
 }
