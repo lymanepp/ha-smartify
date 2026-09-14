@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.const import EntityCategory
+from homeassistant.const import EntityCategory, MATCH_ALL
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -74,6 +74,12 @@ async def async_setup_platform(
 class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
     """Diagnostic sensor exposing a controller's state machine state."""
 
+    # This entity exists to explain live controller decisions. Its attributes can
+    # change frequently and are intentionally excluded from Recorder history.
+    # Note that Home Assistant may still record a state row for an attribute-only
+    # update unless the State entity itself is excluded by Recorder configuration.
+    _unrecorded_attributes = frozenset({MATCH_ALL})
+
     def __init__(
         self,
         controller: SmartifyController,
@@ -97,3 +103,8 @@ class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
     def native_value(self) -> str:
         """Return the current controller state machine state."""
         return str(self.controller.state)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Return the controller's live diagnostic decision snapshot."""
+        return self.controller.diagnostic_attributes

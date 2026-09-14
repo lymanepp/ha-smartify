@@ -84,3 +84,68 @@ def test_listener_remove_safe(hass: HomeAssistant):
     remove()
 
     assert controller._listeners == []
+
+
+def test_diagnostics_notify_only_when_snapshot_changes(hass: HomeAssistant):
+    controller = DummyController(
+        hass,
+        MockConfigEntry(),
+        "off",
+    )
+    updates = 0
+
+    def listener():
+        nonlocal updates
+        updates += 1
+
+    controller.async_add_listener(listener)
+
+    controller.set_diagnostics("AUTO HOLD", value=1)
+    controller.set_diagnostics("AUTO HOLD", value=1)
+    controller.set_diagnostics("AUTO HOLD", value=2)
+
+    assert updates == 2
+    assert controller.diagnostic_attributes["reason"] == "AUTO HOLD"
+    assert controller.diagnostic_attributes["value"] == 2
+    assert "diagnostic_updated_at" in controller.diagnostic_attributes
+
+
+def test_diagnostics_republish_when_live_inputs_change(hass: HomeAssistant):
+    controller = DummyController(
+        hass,
+        MockConfigEntry(),
+        "off",
+    )
+    updates = 0
+
+    def listener():
+        nonlocal updates
+        updates += 1
+
+    controller.async_add_listener(listener)
+
+    controller.set_diagnostics(
+        "AUTO: SSI 86.7 -> 50%",
+        ssi=86.7,
+        target_speed=50,
+    )
+    first_snapshot = controller.diagnostic_attributes
+
+    controller.set_diagnostics(
+        "AUTO: SSI 86.9 -> 50%",
+        ssi=86.9,
+        target_speed=50,
+    )
+
+    assert updates == 2
+    assert controller.diagnostic_attributes != first_snapshot
+    assert controller.diagnostic_attributes["ssi"] == 86.9
+    assert controller.diagnostic_attributes["target_speed"] == 50
+
+    # An identical payload should still be a no-op.
+    controller.set_diagnostics(
+        "AUTO: SSI 86.9 -> 50%",
+        ssi=86.9,
+        target_speed=50,
+    )
+    assert updates == 2

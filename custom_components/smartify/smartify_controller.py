@@ -76,6 +76,7 @@ class SmartifyController(ABC):
         self.tracked_entity_ids: list[str] = []
 
         self._timer_unsub: CALLBACK_TYPE | None = None
+        self._timer_expires_at: datetime | None = None
         self._unsubscribers: list[CALLBACK_TYPE] = []
         self._listeners: list[CALLBACK_TYPE] = []
 
@@ -84,6 +85,9 @@ class SmartifyController(ABC):
         self._shutting_down = False
         self._reference_problems: dict[str, str] = {}
         self._reference_validation_unsub: CALLBACK_TYPE | None = None
+        self._diagnostic_attributes: dict[str, Any] = {
+            "reason": "Initializing.",
+        }
 
     async def async_setup(self, hass: HomeAssistant) -> None:
         """Subscribe to state changes and seed the controller from current states."""
@@ -218,6 +222,47 @@ class SmartifyController(ABC):
     def is_on(self) -> bool:
         """Return the status of the sensor."""
         return self._state == STATE_ON
+
+    @property
+    def diagnostic_attributes(self) -> dict[str, Any]:
+        """Return the latest published controller decision snapshot."""
+        return dict(self._diagnostic_attributes)
+
+    @property
+    def timer_expires_at(self) -> str | None:
+        """Return the current controller timer expiration as an ISO timestamp."""
+        return (
+            self._timer_expires_at.isoformat()
+            if self._timer_expires_at is not None
+            else None
+        )
+
+    def set_diagnostics(self, reason: str, **attributes: Any) -> bool:
+        """Publish the latest live diagnostic snapshot when its content changes.
+
+        Diagnostic inputs are intentionally allowed to update independently of the
+        controller state. For example, a ceiling fan can remain at 50% while SSI
+        changes, and an exhaust fan can remain on while its humidity difference
+        moves inside the hysteresis band. Those changes are useful troubleshooting
+        information and should remain visible on the State entity.
+
+        Returns True when a new snapshot was published.
+        """
+        snapshot = {"reason": reason, **attributes}
+        current = {
+            key: value
+            for key, value in self._diagnostic_attributes.items()
+            if key != "diagnostic_updated_at"
+        }
+        if snapshot == current:
+            return False
+
+        self._diagnostic_attributes = {
+            **snapshot,
+            "diagnostic_updated_at": dt.utcnow().isoformat(),
+        }
+        self._update_listeners()
+        return True
 
     def is_entity_state(self, entity: str | None, value: Any) -> bool:
         """Compare the state of an entity. Return True if the value matches the state."""
@@ -417,6 +462,7 @@ class SmartifyController(ABC):
             _LOGGER.exception("%s; failed canceling timer", self.name)
 
         self._timer_unsub = None
+        self._timer_expires_at = None
 
     def set_timer(self, period: timedelta | None) -> None:
         """Start a timer or cancel a timer if time period is 'None'."""
@@ -426,9 +472,13 @@ class SmartifyController(ABC):
         if period is None:
             return
 
+        expires_at = dt.utcnow() + period
+        self._timer_expires_at = expires_at
+
         @callback
         def timer_expired(_: datetime) -> None:
             self._timer_unsub = None
+            self._timer_expires_at = None
 
             if self._shutting_down:
                 return
@@ -442,7 +492,7 @@ class SmartifyController(ABC):
         self._timer_unsub = async_track_point_in_utc_time(
             self.hass,
             timer_expired,
-            dt.utcnow() + period,
+            expires_at,
         )
 
         _LOGGER.debug(

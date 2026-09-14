@@ -667,3 +667,49 @@ async def test_sustained_grace_timer_handoff_if_sustain_active_at_expiry(
     assert controller.is_on is True
 
     controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_explain_trigger_decay(
+    hass: HomeAssistant,
+):
+    trigger = "binary_sensor.office_pir"
+    controller = OccupancyController(
+        hass,
+        _entry({Config.TRIGGER_ENTITIES: [trigger], Config.DECAY_MINUTES: 3}),
+    )
+
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
+
+    diagnostics = controller.diagnostic_attributes
+    assert diagnostics["reason"] == (
+        "TRIGGERED: binary_sensor.office_pir is on; occupancy is held for up to "
+        "3 minute(s) while waiting for a sustain signal."
+    )
+    assert diagnostics["last_event"] == "trigger"
+    assert diagnostics["active_trigger_entities"] == [trigger]
+
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_explain_sustain_grace_period(
+    hass: HomeAssistant,
+):
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass,
+        _entry({Config.SUSTAIN_ENTITIES: [sustain], Config.DECAY_MINUTES: 1}),
+    )
+
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+
+    diagnostics = controller.diagnostic_attributes
+    assert diagnostics["reason"] == (
+        "DECAY: no sustain entities are active; occupancy remains on until the "
+        "decay timer expires unless a sustain returns."
+    )
+    assert diagnostics["active_sustain_entities"] == []
+
+    controller.async_unload()

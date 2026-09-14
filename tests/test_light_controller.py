@@ -90,3 +90,37 @@ async def test_invalid_illuminance_does_not_crash(
     controller.async_service_call.assert_not_called()
 
     controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_explain_required_condition_block(hass: HomeAssistant):
+    hass.states.async_set("light.test", STATE_OFF)
+    hass.states.async_set("binary_sensor.motion", STATE_OFF)
+    hass.states.async_set("input_boolean.required", STATE_OFF)
+
+    entry = MockConfigEntry(
+        domain="smartify",
+        data={
+            Config.CONTROLLED_ENTITY: "light.test",
+            Config.TRIGGER_ENTITY: "binary_sensor.motion",
+            Config.REQUIRED_ON_ENTITIES: ["input_boolean.required"],
+        },
+    )
+
+    controller = LightController(hass, entry)
+    controller.async_service_call = AsyncMock()
+    await controller.async_setup(hass)
+
+    hass.states.async_set("binary_sensor.motion", STATE_ON)
+    await controller.on_state_change(hass.states.get("binary_sensor.motion"))
+
+    diagnostics = controller.diagnostic_attributes
+    assert diagnostics["reason"] == (
+        "BLOCKED: input_boolean.required must be on but is off; trigger did not "
+        "turn the light on."
+    )
+    assert diagnostics["required_satisfied"] is False
+    assert diagnostics["target_mode"] == STATE_OFF
+    controller.async_service_call.assert_not_called()
+
+    controller.async_unload()

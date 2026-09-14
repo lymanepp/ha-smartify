@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from homeassistant.const import EntityCategory, STATE_ON
+from homeassistant.const import EntityCategory, MATCH_ALL, STATE_ON
 
 from custom_components.smartify.const import Config
 from custom_components.smartify.occupancy_controller import OccupancyController
@@ -31,6 +31,7 @@ def test_occupancy_state_sensor_uses_diagnostic_suffix(hass):
     assert entity.name == "State"
     assert entity.entity_category == EntityCategory.DIAGNOSTIC
     assert entity.has_entity_name is True
+    assert entity._unrecorded_attributes == frozenset({MATCH_ALL})
 
 
 def test_occupancy_state_sensor_native_value_and_attributes(hass):
@@ -54,6 +55,7 @@ def test_occupancy_state_sensor_native_value_and_attributes(hass):
     entity = SmartifyControllerStateSensor(controller, CONTROLLER_STATE_DESCRIPTION)
 
     assert entity.native_value == "unoccupied"
+    assert entity.extra_state_attributes["reason"].startswith("UNOCCUPIED:")
     assert entity.extra_state_attributes["strategy"] == "trigger_and_sustain"
     assert entity.extra_state_attributes["active_trigger_entities"] == [trigger]
     assert entity.extra_state_attributes["active_sustain_entities"] == [sustain]

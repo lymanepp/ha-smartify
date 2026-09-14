@@ -200,3 +200,35 @@ async def test_timer_does_not_fire_when_shutting_down(
 
     assert not mock_create_task.called
     assert controller.timer_fired is False
+
+
+def test_timer_expiration_property(hass: HomeAssistant):
+    controller = DummyController(
+        hass,
+        MockConfigEntry(domain="smartify"),
+        "off",
+    )
+
+    controller.set_timer(timedelta(seconds=30))
+    assert controller.timer_expires_at is not None
+
+    controller.set_timer(None)
+    assert controller.timer_expires_at is None
+
+
+def test_timer_can_be_included_in_manual_decision_snapshot(hass: HomeAssistant):
+    controller = DummyController(
+        hass,
+        MockConfigEntry(domain="smartify"),
+        "off",
+    )
+
+    controller.set_timer(timedelta(seconds=30))
+    controller.set_diagnostics(
+        "MANUAL ON",
+        timer_expires_at=controller.timer_expires_at,
+    )
+
+    assert controller.diagnostic_attributes["timer_expires_at"] is not None
+
+    controller.async_unload()

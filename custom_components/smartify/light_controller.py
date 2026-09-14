@@ -105,6 +105,47 @@ class LightController(SmartifyController):
         """Handle timer expiration from base."""
         await self.fire_event(MyEvent.TIMER)
 
+    def _required_states(self) -> dict[str, str | None]:
+        """Return current states for all configured required entities."""
+        actual: dict[str, str | None] = {}
+        for entity in self._required:
+            state = self.hass.states.get(entity)
+            actual[entity] = state.state if state else None
+        return actual
+
+    def _required_failure(self) -> str | None:
+        """Return the first unmet required condition, if any."""
+        actual = self._required_states()
+        for entity_id, expected in self._required.items():
+            if actual[entity_id] != expected:
+                return (
+                    f"{entity_id} must be {expected} but is "
+                    f"{actual[entity_id] or 'unknown'}"
+                )
+        return None
+
+    def _set_light_diagnostics(self, reason: str, target_mode: str | None = None) -> None:
+        """Publish the current light-control decision snapshot."""
+        trigger_state = None
+        if self.trigger_entity and (state := self.hass.states.get(self.trigger_entity)):
+            trigger_state = state.state
+
+        required_states = self._required_states()
+        self.set_diagnostics(
+            reason,
+            trigger_entity=self.trigger_entity,
+            trigger_state=trigger_state,
+            brightness_pct=self.brightness_pct,
+            illuminance_sensor=self.illuminance_sensor,
+            illuminance=self._cached_illuminance,
+            illuminance_cutoff=self.illuminance_cutoff,
+            required_entities=dict(self._required),
+            required_states=required_states,
+            required_satisfied=required_states == self._required,
+            target_mode=target_mode,
+            timer_expires_at=self.timer_expires_at,
+        )
+
     async def on_event(self, event: MyEvent) -> None:
         """Handle controller events."""
 
@@ -118,11 +159,7 @@ class LightController(SmartifyController):
             return True
 
         def have_required():
-            actual: dict[str, str | None] = {}
-            for entity in self._required:
-                state = self.hass.states.get(entity)
-                actual[entity] = state.state if state else None
-            return actual == self._required
+            return self._required_states() == self._required
 
         async def set_light_mode(mode: str):
             service_data = {}
@@ -138,51 +175,147 @@ class LightController(SmartifyController):
         match (self._state, event):
             case (MyState.INIT, MyEvent.OFF):
                 self.set_state(MyState.OFF)
+                self._set_light_diagnostics(
+                    "STARTUP: light is off; automatic trigger control is active.",
+                    STATE_OFF,
+                )
 
-            case (MyState.INIT, MyEvent.ON) | (MyState.OFF, MyEvent.ON):
+            case (MyState.INIT, MyEvent.ON):
                 if self.is_entity_state(self.trigger_entity, STATE_ON):
                     self.set_state(MyState.ON)
+                    self._set_light_diagnostics(
+                        "STARTUP: light is on and its trigger is on; Smartify is "
+                        "tracking it as automatic on.",
+                        STATE_ON,
+                    )
                 else:
                     self.set_state(MyState.ON_MANUAL)
                     self.set_timer(self._auto_off_period)
+                    self._set_light_diagnostics(
+                        "STARTUP MANUAL ON: light is on while its trigger is off; "
+                        "Smartify is honoring the existing on state as manual.",
+                        STATE_ON,
+                    )
+
+            case (MyState.OFF, MyEvent.ON):
+                if self.is_entity_state(self.trigger_entity, STATE_ON):
+                    self.set_state(MyState.ON)
+                    self._set_light_diagnostics(
+                        "EXTERNAL ON: light changed outside Smartify while its "
+                        "trigger is on; automatic control continues.",
+                        STATE_ON,
+                    )
+                else:
+                    self.set_state(MyState.ON_MANUAL)
+                    self.set_timer(self._auto_off_period)
+                    self._set_light_diagnostics(
+                        "MANUAL ON: light changed outside Smartify while its trigger "
+                        "is off; automatic control resumes when the manual timer "
+                        "expires or the trigger turns on.",
+                        STATE_ON,
+                    )
 
             case (MyState.OFF, MyEvent.TRIGGER_ON):
-                if acceptable_illuminance() and have_required():
+                if required_failure := self._required_failure():
+                    self._set_light_diagnostics(
+                        f"BLOCKED: {required_failure}; trigger did not turn the light on.",
+                        STATE_OFF,
+                    )
+                elif not acceptable_illuminance():
+                    self._set_light_diagnostics(
+                        f"BLOCKED: illuminance {self._cached_illuminance:g} exceeds "
+                        f"the {self.illuminance_cutoff} cutoff.",
+                        STATE_OFF,
+                    )
+                elif have_required():
+                    if self.illuminance_sensor and self._cached_illuminance is None:
+                        reason = (
+                            "AUTO ON: trigger is on and required conditions are "
+                            "satisfied; illuminance has no usable value, so the "
+                            "configured cutoff does not block activation."
+                        )
+                    else:
+                        reason = (
+                            "AUTO ON: trigger is on and all configured conditions "
+                            "permit activation."
+                        )
                     self.set_state(MyState.ON)
+                    self._set_light_diagnostics(reason, STATE_ON)
                     await set_light_mode(STATE_ON)
 
             case (MyState.ON, MyEvent.OFF):
                 if self.is_entity_state(self.trigger_entity, STATE_OFF):
                     self.set_state(MyState.OFF)
+                    self._set_light_diagnostics(
+                        "OFF: light is off and its trigger is off; automatic control "
+                        "is idle.",
+                        STATE_OFF,
+                    )
                 else:
                     self.set_state(MyState.OFF_MANUAL)
                     self.set_timer(None)
+                    self._set_light_diagnostics(
+                        "MANUAL OFF: light changed outside Smartify while its trigger "
+                        "remains on; automatic-on is suppressed until the trigger clears.",
+                        STATE_OFF,
+                    )
 
             case (MyState.ON, MyEvent.TRIGGER_OFF):
                 self.set_state(MyState.OFF)
                 self.set_timer(None)
+                self._set_light_diagnostics(
+                    "AUTO OFF: trigger turned off, so Smartify turned the light off.",
+                    STATE_OFF,
+                )
                 await set_light_mode(STATE_OFF)
 
             case (MyState.ON, MyEvent.TIMER):
                 self.set_state(MyState.OFF)
+                self._set_light_diagnostics(
+                    "AUTO OFF: the active timer expired, so Smartify turned the light off.",
+                    STATE_OFF,
+                )
                 await set_light_mode(STATE_OFF)
 
             case (MyState.OFF_MANUAL, MyEvent.ON):
                 self.set_state(MyState.ON)
+                self._set_light_diagnostics(
+                    "MANUAL OFF CANCELLED: light was turned back on while its trigger "
+                    "is active; automatic control resumed.",
+                    STATE_ON,
+                )
 
             case (MyState.OFF_MANUAL, MyEvent.TRIGGER_OFF):
                 self.set_state(MyState.OFF)
+                self._set_light_diagnostics(
+                    "OFF: trigger cleared after a manual-off override; automatic "
+                    "control is ready for the next trigger.",
+                    STATE_OFF,
+                )
 
             case (MyState.ON_MANUAL, MyEvent.OFF):
                 self.set_state(MyState.OFF)
                 self.set_timer(None)
+                self._set_light_diagnostics(
+                    "MANUAL OFF: manually-on light was turned off before its timer expired.",
+                    STATE_OFF,
+                )
 
             case (MyState.ON_MANUAL, MyEvent.TRIGGER_ON):
                 self.set_state(MyState.ON)
                 self.set_timer(None)
+                self._set_light_diagnostics(
+                    "AUTO TAKEOVER: trigger turned on while the light was manually on; "
+                    "Smartify resumed automatic control.",
+                    STATE_ON,
+                )
 
             case (MyState.ON_MANUAL, MyEvent.TIMER):
                 self.set_state(MyState.OFF)
+                self._set_light_diagnostics(
+                    "AUTO OFF: manual-on timer expired, so Smartify turned the light off.",
+                    STATE_OFF,
+                )
                 await set_light_mode(STATE_OFF)
 
             case _:
