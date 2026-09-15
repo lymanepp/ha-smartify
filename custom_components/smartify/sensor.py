@@ -92,7 +92,9 @@ class SmartifyControllerStateSensor(SmartifyEntity, SensorEntity):
         if isinstance(controller.config_entry, YamlControllerEntry):
             # YAML entities are device-less, so the diagnostic entity needs the
             # controller name as part of its standalone name/object ID.
-            self._attr_name = f"{controller.config_entry.title} {entity_description.name}"
+            self._attr_name = (
+                f"{controller.config_entry.title} {entity_description.name}"
+            )
             self._attr_suggested_object_id = self._attr_name
         else:
             self._attr_name = entity_description.name

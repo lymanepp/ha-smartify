@@ -8,7 +8,12 @@ from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.const import ATTR_ENTITY_ID, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    STATE_ON,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
 from homeassistant.core import (
     CALLBACK_TYPE,
     Context,
@@ -111,9 +116,7 @@ class SmartifyController(ABC):
                 self._schedule_reference_validation()
                 return
 
-            problem = self._reference_problem_for_state(
-                new_state.entity_id, new_state
-            )
+            problem = self._reference_problem_for_state(new_state.entity_id, new_state)
             if problem is not None:
                 if problem.startswith("wrong_domain:"):
                     self._set_reference_problem(new_state.entity_id, problem)
@@ -311,9 +314,7 @@ class SmartifyController(ABC):
         controller_type = self.data.get(Config.CONTROLLER_TYPE)
         return _EXPECTED_CONTROLLED_DOMAINS.get(str(controller_type))
 
-    def _reference_problem_for_state(
-        self, entity_id: str, state: State
-    ) -> str | None:
+    def _reference_problem_for_state(self, entity_id: str, state: State) -> str | None:
         """Return the current problem for an existing referenced entity."""
         if state.state == STATE_UNAVAILABLE:
             return "unavailable"
@@ -438,11 +439,11 @@ class SmartifyController(ABC):
 
     def _clear_reference_problem(self, entity_id: str) -> None:
         """Clear a reference problem and its Repairs issue when it recovers."""
-        async_delete_issue(self.hass, DOMAIN, self._reference_issue_id(entity_id))
         previous = self._reference_problems.pop(entity_id, None)
         if previous is None:
             return
 
+        async_delete_issue(self.hass, DOMAIN, self._reference_issue_id(entity_id))
         _LOGGER.info(
             "%s; referenced entity '%s' recovered from %s.",
             self.name or self.config_entry.title,

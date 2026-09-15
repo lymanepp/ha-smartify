@@ -164,12 +164,12 @@ class OccupancyController(SmartifyController):
                     "occupancy state and decay timer continue unchanged."
                 )
 
-        elif state.entity_id in self._sustain_entities:
+        if state.entity_id in self._sustain_entities:
             if state.state in ON_OFF_STATES:
                 self._last_sustain_entity = state.entity_id
                 await self.fire_event(MyEvent.SUSTAIN)
 
-        elif state.entity_id in self._required:
+        if state.entity_id in self._required:
             if state.state in ON_OFF_STATES:
                 self._last_required_entity = state.entity_id
                 await self.fire_event(MyEvent.REQUIRED)
@@ -414,6 +414,13 @@ class OccupancyController(SmartifyController):
                     self._enter_unoccupied_state(
                         "UNOCCUPIED: the trigger decay timer expired with no active "
                         "sustain signal."
+                    )
+
+            case (MyState.SUSTAINED_OCCUPIED, MyEvent.TRIGGER):
+                if not self._have_active_sustain() and self._have_required():
+                    self._enter_triggered_occupied_state(
+                        f"TRIGGERED: {self._last_trigger_entity} is on; no sustain remains active, "
+                        f"so the {self._decay_minutes}-minute decay timer was restarted."
                     )
 
             case (MyState.SUSTAINED_OCCUPIED, MyEvent.SUSTAIN):

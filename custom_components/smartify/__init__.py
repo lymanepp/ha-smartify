@@ -147,7 +147,11 @@ async def async_setup_yaml_platform(
 
         if entities:
             await asyncio.gather(
-                *(entity.async_remove() for entity in entities if entity.hass is not None)
+                *(
+                    entity.async_remove()
+                    for entity in entities
+                    if entity.hass is not None
+                )
             )
 
         controllers = _controller_registry(hass)

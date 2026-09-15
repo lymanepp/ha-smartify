@@ -124,7 +124,9 @@ class LightController(SmartifyController):
                 )
         return None
 
-    def _set_light_diagnostics(self, reason: str, target_mode: str | None = None) -> None:
+    def _set_light_diagnostics(
+        self, reason: str, target_mode: str | None = None
+    ) -> None:
         """Publish the current light-control decision snapshot."""
         trigger_state = None
         if self.trigger_entity and (state := self.hass.states.get(self.trigger_entity)):
