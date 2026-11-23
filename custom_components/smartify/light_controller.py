@@ -38,6 +38,7 @@ class MyEvent(enum.StrEnum):
     ON = "on"
     TRIGGER_OFF = "trigger_off"
     TRIGGER_ON = "trigger_on"
+    REQUIRED = "required"
     TIMER = "timer"
 
 
@@ -100,6 +101,19 @@ class LightController(SmartifyController):
             self._cached_illuminance = (
                 float(state.state) if is_number(state.state) else None
             )
+
+        elif state.entity_id in self._required:
+            if state.state in ON_OFF_STATES:
+                await self.fire_event(MyEvent.REQUIRED)
+
+    async def on_entity_unavailable(self, entity_id: str) -> None:
+        """Fail automatic control safe when a tracked dependency is lost."""
+        if entity_id == self.trigger_entity:
+            # A missing/unknown trigger must not keep an automatic light on.
+            await self.fire_event(MyEvent.TRIGGER_OFF)
+        if entity_id in self._required:
+            # The required-state check treats all non-on/off values as unmet.
+            await self.fire_event(MyEvent.REQUIRED)
 
     async def on_timer_expired(self) -> None:
         """Handle timer expiration from base."""
@@ -184,12 +198,23 @@ class LightController(SmartifyController):
 
             case (MyState.INIT, MyEvent.ON):
                 if self.is_entity_state(self.trigger_entity, STATE_ON):
-                    self.set_state(MyState.ON)
-                    self._set_light_diagnostics(
-                        "STARTUP: light is on and its trigger is on; Smartify is "
-                        "tracking it as automatic on.",
-                        STATE_ON,
-                    )
+                    if required_failure := self._required_failure():
+                        # At startup an ON light with an active trigger is
+                        # considered automatically controlled, as before.
+                        self.set_state(MyState.OFF)
+                        self._set_light_diagnostics(
+                            f"STARTUP AUTO OFF: {required_failure}; existing "
+                            "automatically controlled light must turn off.",
+                            STATE_OFF,
+                        )
+                        await set_light_mode(STATE_OFF)
+                    else:
+                        self.set_state(MyState.ON)
+                        self._set_light_diagnostics(
+                            "STARTUP: light is on and its trigger is on; Smartify "
+                            "is tracking it as automatic on.",
+                            STATE_ON,
+                        )
                 else:
                     self.set_state(MyState.ON_MANUAL)
                     self.set_timer(self._auto_off_period)
@@ -244,6 +269,42 @@ class LightController(SmartifyController):
                     self.set_state(MyState.ON)
                     self._set_light_diagnostics(reason, STATE_ON)
                     await set_light_mode(STATE_ON)
+
+            case (MyState.OFF, MyEvent.REQUIRED):
+                if required_failure := self._required_failure():
+                    self._set_light_diagnostics(
+                        f"BLOCKED: {required_failure}; required condition change "
+                        "did not turn the light on.",
+                        STATE_OFF,
+                    )
+                elif self.is_entity_state(self.trigger_entity, STATE_ON):
+                    # Share the usual trigger-on checks, including illuminance.
+                    # We're already inside the transition lock, so do not call
+                    # fire_event recursively.
+                    await self.on_event(MyEvent.TRIGGER_ON)
+                else:
+                    self._set_light_diagnostics(
+                        "READY: required conditions are satisfied, but the trigger "
+                        "is off; light remains off.",
+                        STATE_OFF,
+                    )
+
+            case (MyState.ON, MyEvent.REQUIRED):
+                if required_failure := self._required_failure():
+                    self.set_state(MyState.OFF)
+                    self.set_timer(None)
+                    self._set_light_diagnostics(
+                        f"AUTO OFF: {required_failure}; required condition "
+                        "no longer permits automatic control.",
+                        STATE_OFF,
+                    )
+                    await set_light_mode(STATE_OFF)
+                else:
+                    self._set_light_diagnostics(
+                        "REQUIRED: all required conditions are satisfied; "
+                        "light remains on.",
+                        STATE_ON,
+                    )
 
             case (MyState.ON, MyEvent.OFF):
                 if self.is_entity_state(self.trigger_entity, STATE_OFF):
@@ -304,13 +365,22 @@ class LightController(SmartifyController):
                 )
 
             case (MyState.ON_MANUAL, MyEvent.TRIGGER_ON):
-                self.set_state(MyState.ON)
-                self.set_timer(None)
-                self._set_light_diagnostics(
-                    "AUTO TAKEOVER: trigger turned on while the light was manually on; "
-                    "Smartify resumed automatic control.",
-                    STATE_ON,
-                )
+                if required_failure := self._required_failure():
+                    # Keep honoring the manual-on override and its timer rather
+                    # than taking automatic ownership while requirements fail.
+                    self._set_light_diagnostics(
+                        f"MANUAL ON: {required_failure}; automatic takeover "
+                        "was blocked, and the manual-on timer continues.",
+                        STATE_ON,
+                    )
+                else:
+                    self.set_state(MyState.ON)
+                    self.set_timer(None)
+                    self._set_light_diagnostics(
+                        "AUTO TAKEOVER: trigger turned on while the light was manually on; "
+                        "Smartify resumed automatic control.",
+                        STATE_ON,
+                    )
 
             case (MyState.ON_MANUAL, MyEvent.TIMER):
                 self.set_state(MyState.OFF)
