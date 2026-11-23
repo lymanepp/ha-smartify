@@ -12,12 +12,15 @@ logger:
 # Each entry accepts the same fields as the matching config/options flow.
 smartify:
   light:
-    - controlled_entity: light.office_light
+    - name: Office Light
+      unique_id: light_office_light
+      controlled_entity: light.office_light
       trigger_entity: binary_sensor.office_motion
       auto_off_minutes: 5
 
   occupancy:
     - sensor_name: Office Occupancy
+      unique_id: occupancy_office_occupancy
       trigger_entities:
         - binary_sensor.office_motion
       decay_minutes: 10

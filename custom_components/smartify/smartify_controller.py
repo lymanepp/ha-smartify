@@ -114,6 +114,8 @@ class SmartifyController(ABC):
 
             if new_state is None:
                 self._schedule_reference_validation()
+                if old_state is not None:
+                    await self.on_entity_unavailable(old_state.entity_id)
                 return
 
             problem = self._reference_problem_for_state(new_state.entity_id, new_state)
@@ -122,6 +124,7 @@ class SmartifyController(ABC):
                     self._set_reference_problem(new_state.entity_id, problem)
                 else:
                     self._schedule_reference_validation()
+                    await self.on_entity_unavailable(new_state.entity_id)
                 return
 
             self._clear_reference_problem(new_state.entity_id)
@@ -522,6 +525,14 @@ class SmartifyController(ABC):
     @abstractmethod
     async def on_state_change(self, state: State) -> None:
         """Handle tracked entity state changes."""
+
+    async def on_entity_unavailable(self, entity_id: str) -> None:
+        """Handle a tracked entity becoming unavailable, unknown, or removed.
+
+        These transitions are not forwarded to on_state_change. Controllers
+        that depend on a live entity can override this hook to reevaluate
+        their state when the entity stops providing a usable value.
+        """
 
     @abstractmethod
     async def on_timer_expired(self) -> None:

@@ -27,6 +27,7 @@ class MyEvent(enum.StrEnum):
     """State machine events."""
 
     TRIGGER = "trigger"
+    TRIGGER_OFF = "trigger_off"
     SUSTAIN = "sustain"
     REQUIRED = "required"
     TIMER = "timer"
@@ -54,8 +55,8 @@ class OccupancyController(SmartifyController):
     States:
 
     * unoccupied: no occupancy is currently detected.
-    * triggered_occupied: occupancy was started by a trigger and is held by the
-      configured trigger decay timer.
+    * triggered_occupied: occupancy was started by a trigger. It is held while
+      any trigger is on, then by the decay timer once all triggers are off.
     * sustained_occupied: occupancy is being maintained by one or more active
       sustain entities.
 
@@ -64,16 +65,22 @@ class OccupancyController(SmartifyController):
     * If triggers are configured, only a trigger turning on may enter occupancy
       from the unoccupied state. Sustains cannot create occupancy while vacant.
     * If triggers are configured, decay_minutes is expected to be configured.
-      Every trigger-on event starts or restarts that decay timer.
+      While any trigger is on, occupancy is held with no timer running. The
+      decay timer starts when the last trigger turns off (or becomes
+      unavailable), and a trigger turning back on cancels it.
     * In triggered_occupied, any sustain turning on immediately transitions to
       sustained_occupied and cancels the decay timer.
     * If the trigger decay timer expires before any sustain turns on, occupancy
       exits to unoccupied.
-    * In sustained_occupied, when all sustain entities turn off the controller
-      starts a decay timer (reusing decay_minutes) rather than exiting at once;
-      occupancy exits only if the timer expires before a sustain returns. A
-      sustain turning back on cancels the timer and keeps occupancy. A failed
-      required condition still exits immediately.
+    * When the last sustain turns off while a trigger remains on, occupancy
+      immediately hands back to the trigger without starting a decay timer.
+    * In sustained_occupied, when all sustains turn off and no trigger is on,
+      the controller starts a grace timer (reusing decay_minutes). Occupancy
+      exits only if that timer expires before a sustain or trigger returns.
+      A sustain turning back on cancels the timer and keeps occupancy.
+      A failed required condition still exits immediately.
+    * Unavailable, unknown, or removed triggers are treated as released;
+      sustains are reevaluated; required conditions become unsatisfied.
     * If no triggers are configured, any sustain turning on enters
       sustained_occupied, and occupancy follows the sustain entities directly.
     """
@@ -159,10 +166,7 @@ class OccupancyController(SmartifyController):
             if state.state == STATE_ON:
                 await self.fire_event(MyEvent.TRIGGER)
             elif state.state == STATE_OFF:
-                self._set_occupancy_diagnostics(
-                    f"TRIGGER RELEASED: {state.entity_id} is off; the current "
-                    "occupancy state and decay timer continue unchanged."
-                )
+                await self.fire_event(MyEvent.TRIGGER_OFF)
 
         if state.entity_id in self._sustain_entities:
             if state.state in ON_OFF_STATES:
@@ -173,6 +177,20 @@ class OccupancyController(SmartifyController):
             if state.state in ON_OFF_STATES:
                 self._last_required_entity = state.entity_id
                 await self.fire_event(MyEvent.REQUIRED)
+
+    async def on_entity_unavailable(self, entity_id: str) -> None:
+        """Reevaluate occupancy when a tracked sensor stops providing a state."""
+        if entity_id in self._trigger_entities:
+            self._last_trigger_entity = entity_id
+            await self.fire_event(MyEvent.TRIGGER_OFF)
+
+        if entity_id in self._sustain_entities:
+            self._last_sustain_entity = entity_id
+            await self.fire_event(MyEvent.SUSTAIN)
+
+        if entity_id in self._required:
+            self._last_required_entity = entity_id
+            await self.fire_event(MyEvent.REQUIRED)
 
     async def on_timer_expired(self) -> None:
         """Handle timer expiration from base."""
@@ -194,6 +212,10 @@ class OccupancyController(SmartifyController):
     def _have_sustains(self) -> bool:
         """Return whether sustain entities are configured."""
         return bool(self._sustain_entities)
+
+    def _have_active_trigger(self) -> bool:
+        """Return whether any configured trigger entity is currently on."""
+        return bool(self.active_trigger_entities)
 
     def _have_active_sustain(self) -> bool:
         """Return whether any configured sustain entity is currently on."""
@@ -248,8 +270,14 @@ class OccupancyController(SmartifyController):
         self._set_occupancy_diagnostics(reason)
 
     def _enter_triggered_occupied_state(self, reason: str) -> None:
-        """Enter triggered occupancy and start/restart the trigger decay timer."""
-        self.set_timer(self._trigger_decay_period)
+        """Enter triggered occupancy.
+
+        While a trigger is on, occupancy is held with no timer. The decay timer
+        only runs once every trigger is off.
+        """
+        self.set_timer(
+            None if self._have_active_trigger() else self._trigger_decay_period
+        )
         self.set_state(MyState.TRIGGERED_OCCUPIED)
         self._set_occupancy_diagnostics(reason)
 
@@ -271,6 +299,14 @@ class OccupancyController(SmartifyController):
         if required_failure := self._required_failure():
             self._enter_unoccupied_state(
                 f"BLOCKED: {required_failure}; occupancy cleared immediately."
+            )
+            return
+
+        if self._have_active_trigger() and not self._have_active_sustain():
+            self._enter_triggered_occupied_state(
+                f"TRIGGERED: no sustain is active, but "
+                f"{', '.join(self.active_trigger_entities)} is on; occupancy is "
+                "held until all triggers turn off."
             )
             return
 
@@ -302,8 +338,8 @@ class OccupancyController(SmartifyController):
                 if self._have_triggers() and self._have_required():
                     self._enter_triggered_occupied_state(
                         f"TRIGGERED: {self._last_trigger_entity} is on; occupancy "
-                        f"is held for up to {self._decay_minutes} minute(s) while "
-                        "waiting for a sustain signal."
+                        "is held while it stays on, then for "
+                        f"{self._decay_minutes} minute(s) after all triggers turn off."
                     )
                 elif required_failure := self._required_failure():
                     self._set_occupancy_diagnostics(
@@ -357,13 +393,33 @@ class OccupancyController(SmartifyController):
             case (MyState.TRIGGERED_OCCUPIED, MyEvent.TRIGGER):
                 if self._have_required():
                     self._enter_triggered_occupied_state(
-                        f"TRIGGERED: {self._last_trigger_entity} retriggered; the "
-                        f"{self._decay_minutes}-minute decay timer was restarted."
+                        f"TRIGGERED: {self._last_trigger_entity} is on; occupancy "
+                        "is held and any running decay timer was cancelled."
                     )
                 elif required_failure := self._required_failure():
                     self._set_occupancy_diagnostics(
                         f"BLOCKED: {required_failure}; retrigger was ignored."
                     )
+
+            case (MyState.TRIGGERED_OCCUPIED, MyEvent.TRIGGER_OFF):
+                if active_triggers := self.active_trigger_entities:
+                    self._set_occupancy_diagnostics(
+                        f"TRIGGERED: {self._last_trigger_entity} released, but "
+                        f"{', '.join(active_triggers)} is still on; occupancy is held."
+                    )
+                elif self._timer_unsub is None:
+                    self.set_timer(self._trigger_decay_period)
+                    self._set_occupancy_diagnostics(
+                        f"DECAY: all triggers are off; occupancy ends in "
+                        f"{self._decay_minutes} minute(s) unless a trigger or "
+                        "sustain turns on."
+                    )
+
+            case (_, MyEvent.TRIGGER_OFF):
+                self._set_occupancy_diagnostics(
+                    f"TRIGGER RELEASED: {self._last_trigger_entity} is off; the "
+                    "current occupancy state is unchanged."
+                )
 
             case (MyState.TRIGGERED_OCCUPIED, MyEvent.SUSTAIN):
                 if required_failure := self._required_failure():
@@ -377,8 +433,8 @@ class OccupancyController(SmartifyController):
                     )
                 else:
                     self._set_occupancy_diagnostics(
-                        "TRIGGERED: no sustain entity is active; the trigger decay "
-                        "timer continues."
+                        "TRIGGERED: no sustain entity is active; occupancy remains "
+                        "held by the trigger."
                     )
 
             case (MyState.TRIGGERED_OCCUPIED, MyEvent.REQUIRED):
@@ -405,6 +461,12 @@ class OccupancyController(SmartifyController):
                         "SUSTAINED: the trigger timer expired, but a sustain signal "
                         "is active, so occupancy remains on."
                     )
+                elif self._have_required() and self._have_active_trigger():
+                    # Defensive: a trigger came back on but its event was missed.
+                    self._enter_triggered_occupied_state(
+                        "TRIGGERED: the decay timer expired, but a trigger is on, "
+                        "so occupancy is held."
+                    )
                 elif required_failure := self._required_failure():
                     self._enter_unoccupied_state(
                         f"BLOCKED: {required_failure}; trigger timer expired and "
@@ -419,8 +481,8 @@ class OccupancyController(SmartifyController):
             case (MyState.SUSTAINED_OCCUPIED, MyEvent.TRIGGER):
                 if not self._have_active_sustain() and self._have_required():
                     self._enter_triggered_occupied_state(
-                        f"TRIGGERED: {self._last_trigger_entity} is on; no sustain remains active, "
-                        f"so the {self._decay_minutes}-minute decay timer was restarted."
+                        f"TRIGGERED: {self._last_trigger_entity} is on and no "
+                        "sustain remains active; occupancy is held by the trigger."
                     )
 
             case (MyState.SUSTAINED_OCCUPIED, MyEvent.SUSTAIN):
@@ -436,6 +498,11 @@ class OccupancyController(SmartifyController):
                     self._enter_sustained_occupied_state(
                         "SUSTAINED: the decay timer expired, but a sustain signal "
                         "is active, so occupancy remains on."
+                    )
+                elif self._have_required() and self._have_active_trigger():
+                    self._enter_triggered_occupied_state(
+                        "TRIGGERED: the sustain decay timer expired, but a trigger "
+                        "is on, so occupancy is held by the trigger."
                     )
                 elif required_failure := self._required_failure():
                     self._enter_unoccupied_state(

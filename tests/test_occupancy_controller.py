@@ -3,9 +3,13 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, State
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.smartify.const import Config
 from custom_components.smartify.occupancy_controller import (
@@ -44,7 +48,7 @@ def _track_timer_calls(
 
 
 @pytest.mark.asyncio
-async def test_trigger_only_trigger_enters_triggered_occupied_and_starts_decay_timer(
+async def test_trigger_only_trigger_on_enters_triggered_occupied_and_holds_without_timer(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -59,11 +63,11 @@ async def test_trigger_only_trigger_enters_triggered_occupied_and_starts_decay_t
 
     assert controller.state == MyState.TRIGGERED_OCCUPIED
     assert controller.is_on is True
-    assert timer_calls == [timedelta(minutes=2)]
+    assert timer_calls == [None]
 
 
 @pytest.mark.asyncio
-async def test_trigger_only_trigger_off_does_not_exit_before_decay_timer(
+async def test_trigger_only_trigger_off_starts_decay_timer(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -79,11 +83,11 @@ async def test_trigger_only_trigger_off_does_not_exit_before_decay_timer(
 
     assert controller.state == MyState.TRIGGERED_OCCUPIED
     assert controller.is_on is True
-    assert timer_calls == [timedelta(minutes=3)]
+    assert timer_calls == [None, timedelta(minutes=3)]
 
 
 @pytest.mark.asyncio
-async def test_trigger_only_retrigger_restarts_decay_timer(
+async def test_trigger_only_retrigger_during_decay_cancels_timer(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -95,14 +99,15 @@ async def test_trigger_only_retrigger_restarts_decay_timer(
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
     await _set_and_notify(hass, controller, trigger, STATE_ON)
-    await controller.fire_event(MyEvent.TRIGGER)
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
 
     assert controller.state == MyState.TRIGGERED_OCCUPIED
-    assert timer_calls == [timedelta(minutes=5), timedelta(minutes=5)]
+    assert timer_calls == [None, timedelta(minutes=5), None]
 
 
 @pytest.mark.asyncio
-async def test_trigger_only_attribute_update_does_not_restart_decay_timer(
+async def test_trigger_only_attribute_update_does_not_retrigger(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -122,7 +127,7 @@ async def test_trigger_only_attribute_update_does_not_restart_decay_timer(
     await controller._on_state_change(old_state, new_state)
 
     assert controller.state == MyState.TRIGGERED_OCCUPIED
-    assert timer_calls == [timedelta(minutes=5)]
+    assert timer_calls == [None]
 
 
 @pytest.mark.asyncio
@@ -138,11 +143,12 @@ async def test_trigger_only_timer_expiration_exits_triggered_occupied(
     timer_calls = _track_timer_calls(monkeypatch, controller)
 
     await _set_and_notify(hass, controller, trigger, STATE_ON)
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
     await controller.fire_event(MyEvent.TIMER)
 
     assert controller.state == MyState.UNOCCUPIED
     assert controller.is_on is False
-    assert timer_calls == [timedelta(minutes=3), None]
+    assert timer_calls == [None, timedelta(minutes=3), None]
 
 
 @pytest.mark.asyncio
@@ -279,7 +285,7 @@ async def test_hybrid_trigger_enters_triggered_occupied_even_before_sustain_turn
 
     assert controller.state == MyState.TRIGGERED_OCCUPIED
     assert controller.is_on is True
-    assert timer_calls == [timedelta(minutes=1)]
+    assert timer_calls == [None]
 
 
 @pytest.mark.asyncio
@@ -333,7 +339,7 @@ async def test_hybrid_sustain_on_while_triggered_transitions_to_sustained_and_ca
 
     assert controller.state == MyState.SUSTAINED_OCCUPIED
     assert controller.is_on is True
-    assert timer_calls == [timedelta(minutes=1), None]
+    assert timer_calls == [None, timedelta(minutes=1), None]
 
 
 @pytest.mark.asyncio
@@ -355,6 +361,7 @@ async def test_hybrid_sustained_occupied_starts_grace_timer_when_sustains_turn_o
 
     await _set_and_notify(hass, controller, trigger, STATE_ON)
     await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, trigger, STATE_OFF)
     await _set_and_notify(hass, controller, sustain, STATE_OFF)
 
     # Grace timer started; still occupied until it expires.
@@ -445,7 +452,7 @@ async def test_hybrid_trigger_while_sustained_and_sustain_active_stays_sustained
     await _set_and_notify(hass, controller, trigger, STATE_ON)
 
     assert controller.state == MyState.SUSTAINED_OCCUPIED
-    assert timer_calls == [timedelta(minutes=1), None]
+    assert timer_calls == [None, None]
 
 
 @pytest.mark.asyncio
@@ -683,8 +690,8 @@ async def test_diagnostics_explain_trigger_decay(
 
     diagnostics = controller.diagnostic_attributes
     assert diagnostics["reason"] == (
-        "TRIGGERED: binary_sensor.office_pir is on; occupancy is held for up to "
-        "3 minute(s) while waiting for a sustain signal."
+        "TRIGGERED: binary_sensor.office_pir is on; occupancy is held while it "
+        "stays on, then for 3 minute(s) after all triggers turn off."
     )
     assert diagnostics["last_event"] == "trigger"
     assert diagnostics["active_trigger_entities"] == [trigger]
@@ -712,4 +719,307 @@ async def test_diagnostics_explain_sustain_grace_period(
     )
     assert diagnostics["active_sustain_entities"] == []
 
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_trigger_held_on_past_decay_keeps_occupancy(hass: HomeAssistant):
+    """Regression: a PIR that stays on longer than decay must not clear occupancy."""
+    trigger = "binary_sensor.office_pir"
+    hass.states.async_set(trigger, STATE_OFF)
+    controller = OccupancyController(
+        hass,
+        _entry({Config.TRIGGER_ENTITIES: [trigger], Config.DECAY_MINUTES: 2}),
+    )
+    await controller.async_setup(hass)
+
+    hass.states.async_set(trigger, STATE_ON)
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=10))
+    await hass.async_block_till_done()
+
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+    assert controller.timer_expires_at is None
+
+    hass.states.async_set(trigger, STATE_OFF)
+    await hass.async_block_till_done()
+    assert controller.is_on is True
+    assert controller.timer_expires_at is not None
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=3))
+    await hass.async_block_till_done()
+    assert controller.state == MyState.UNOCCUPIED
+
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_decay_waits_for_last_of_multiple_triggers(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    pir_a = "binary_sensor.pir_a"
+    pir_b = "binary_sensor.pir_b"
+    controller = OccupancyController(
+        hass,
+        _entry({Config.TRIGGER_ENTITIES: [pir_a, pir_b], Config.DECAY_MINUTES: 4}),
+    )
+    timer_calls = _track_timer_calls(monkeypatch, controller)
+
+    await _set_and_notify(hass, controller, pir_a, STATE_ON)
+    await _set_and_notify(hass, controller, pir_b, STATE_ON)
+    await _set_and_notify(hass, controller, pir_a, STATE_OFF)
+    assert timer_calls == [None, None]
+
+    await _set_and_notify(hass, controller, pir_b, STATE_OFF)
+    assert timer_calls == [None, None, timedelta(minutes=4)]
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+
+
+@pytest.mark.asyncio
+async def test_unavailable_trigger_releases_hold(hass: HomeAssistant):
+    """A PIR that drops off the network must not hold occupancy forever."""
+    trigger = "binary_sensor.office_pir"
+    hass.states.async_set(trigger, STATE_OFF)
+    controller = OccupancyController(
+        hass,
+        _entry({Config.TRIGGER_ENTITIES: [trigger], Config.DECAY_MINUTES: 2}),
+    )
+    await controller.async_setup(hass)
+
+    hass.states.async_set(trigger, STATE_ON)
+    await hass.async_block_till_done()
+    hass.states.async_set(trigger, STATE_UNAVAILABLE)
+    await hass.async_block_till_done()
+    assert controller.timer_expires_at is not None
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=3))
+    await hass.async_block_till_done()
+    assert controller.state == MyState.UNOCCUPIED
+
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_last_sustain_off_hands_back_immediately_to_held_trigger(
+    hass: HomeAssistant,
+):
+    """Last sustain off hands occupancy immediately to an active PIR."""
+    trigger = "binary_sensor.office_pir"
+    sustain = "binary_sensor.office_mmwave"
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.TRIGGER_ENTITIES: [trigger],
+                Config.SUSTAIN_ENTITIES: [sustain],
+                Config.DECAY_MINUTES: 1,
+            }
+        ),
+    )
+
+    await _set_and_notify(hass, controller, trigger, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_ON)
+    await _set_and_notify(hass, controller, sustain, STATE_OFF)
+
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+    assert controller.timer_expires_at is None
+
+    controller.async_unload()
+
+
+async def _lose_entity(
+    hass: HomeAssistant, entity_id: str, failure: str | None
+) -> None:
+    """Exercise the real state-event listener for a sensor that stops reporting."""
+    if failure is None:
+        hass.states.async_remove(entity_id)
+    else:
+        hass.states.async_set(entity_id, failure)
+    await hass.async_block_till_done()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure", [STATE_UNAVAILABLE, STATE_UNKNOWN, None],
+    ids=["unavailable", "unknown", "removed"],
+)
+async def test_lost_trigger_starts_decay(
+    hass: HomeAssistant, failure: str | None
+):
+    """Even a removed PIR must release trigger-held occupancy."""
+    trigger = "binary_sensor.office_pir"
+    hass.states.async_set(trigger, STATE_ON)
+    controller = OccupancyController(
+        hass, _entry({Config.TRIGGER_ENTITIES: [trigger], Config.DECAY_MINUTES: 2})
+    )
+    await controller.async_setup(hass)
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+    assert controller.timer_expires_at is None
+
+    await _lose_entity(hass, trigger, failure)
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+    assert controller.timer_expires_at is not None
+    assert controller.diagnostic_attributes["last_trigger_entity"] == trigger
+
+    await controller.fire_event(MyEvent.TIMER)
+    assert controller.state == MyState.UNOCCUPIED
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure", [STATE_UNAVAILABLE, STATE_UNKNOWN, None],
+    ids=["unavailable", "unknown", "removed"],
+)
+async def test_lost_sustain_starts_grace_without_trigger(
+    hass: HomeAssistant, failure: str | None
+):
+    """Loss of the last sustain starts a grace timer, not an indefinite hold."""
+    sustain = "binary_sensor.office_mmwave"
+    hass.states.async_set(sustain, STATE_ON)
+    controller = OccupancyController(
+        hass, _entry({Config.SUSTAIN_ENTITIES: [sustain], Config.DECAY_MINUTES: 2})
+    )
+    await controller.async_setup(hass)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.timer_expires_at is None
+
+    await _lose_entity(hass, sustain, failure)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.timer_expires_at is not None
+    assert controller.diagnostic_attributes["last_sustain_entity"] == sustain
+
+    await controller.fire_event(MyEvent.TIMER)
+    assert controller.state == MyState.UNOCCUPIED
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure", [STATE_UNAVAILABLE, STATE_UNKNOWN, None],
+    ids=["unavailable", "unknown", "removed"],
+)
+async def test_lost_sustain_hands_back_to_active_trigger(
+    hass: HomeAssistant, failure: str | None
+):
+    """If PIR is still on, losing mmWave immediately hands control to PIR."""
+    trigger = "binary_sensor.office_pir"
+    sustain = "binary_sensor.office_mmwave"
+    hass.states.async_set(trigger, STATE_ON)
+    hass.states.async_set(sustain, STATE_ON)
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.TRIGGER_ENTITIES: [trigger],
+                Config.SUSTAIN_ENTITIES: [sustain],
+                Config.DECAY_MINUTES: 2,
+            }
+        ),
+    )
+    await controller.async_setup(hass)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+
+    await _lose_entity(hass, sustain, failure)
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+    assert controller.timer_expires_at is None
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_losing_one_of_two_sustains_does_not_start_grace(hass: HomeAssistant):
+    """One failed mmWave must not override another active sustain."""
+    sustain_a = "binary_sensor.mmwave_a"
+    sustain_b = "binary_sensor.mmwave_b"
+    hass.states.async_set(sustain_a, STATE_ON)
+    hass.states.async_set(sustain_b, STATE_ON)
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.SUSTAIN_ENTITIES: [sustain_a, sustain_b],
+                Config.DECAY_MINUTES: 2,
+            }
+        ),
+    )
+    await controller.async_setup(hass)
+
+    await _lose_entity(hass, sustain_a, STATE_UNAVAILABLE)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.timer_expires_at is None
+
+    await _lose_entity(hass, sustain_b, STATE_UNAVAILABLE)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+    assert controller.timer_expires_at is not None
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("required_key", "expected"),
+    [
+        (Config.REQUIRED_ON_ENTITIES, STATE_ON),
+        (Config.REQUIRED_OFF_ENTITIES, STATE_OFF),
+    ],
+    ids=["required_on", "required_off"],
+)
+@pytest.mark.parametrize(
+    "failure", [STATE_UNAVAILABLE, STATE_UNKNOWN, None],
+    ids=["unavailable", "unknown", "removed"],
+)
+async def test_lost_required_entity_clears_triggered_occupancy_immediately(
+    hass: HomeAssistant,
+    required_key: str,
+    expected: str,
+    failure: str | None,
+):
+    """Every required condition is a hard gate, including when it disappears."""
+    trigger = "binary_sensor.office_pir"
+    required = "binary_sensor.requirement"
+    hass.states.async_set(trigger, STATE_ON)
+    hass.states.async_set(required, expected)
+    controller = OccupancyController(
+        hass,
+        _entry({Config.TRIGGER_ENTITIES: [trigger], required_key: [required]}),
+    )
+    await controller.async_setup(hass)
+    assert controller.state == MyState.TRIGGERED_OCCUPIED
+
+    await _lose_entity(hass, required, failure)
+    assert controller.state == MyState.UNOCCUPIED
+    assert controller.timer_expires_at is None
+    assert controller.diagnostic_attributes["required_satisfied"] is False
+    assert controller.diagnostic_attributes["last_required_entity"] == required
+    controller.async_unload()
+
+
+@pytest.mark.asyncio
+async def test_lost_required_entity_clears_sustained_and_recovers(
+    hass: HomeAssistant,
+):
+    """Required sensor loss clears sustained occupancy; recovery can restore it."""
+    sustain = "binary_sensor.office_mmwave"
+    required = "binary_sensor.requirement"
+    hass.states.async_set(sustain, STATE_ON)
+    hass.states.async_set(required, STATE_ON)
+    controller = OccupancyController(
+        hass,
+        _entry(
+            {
+                Config.SUSTAIN_ENTITIES: [sustain],
+                Config.REQUIRED_ON_ENTITIES: [required],
+            }
+        ),
+    )
+    await controller.async_setup(hass)
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
+
+    await _lose_entity(hass, required, STATE_UNAVAILABLE)
+    assert controller.state == MyState.UNOCCUPIED
+    assert controller.timer_expires_at is None
+
+    hass.states.async_set(required, STATE_ON)
+    await hass.async_block_till_done()
+    assert controller.state == MyState.SUSTAINED_OCCUPIED
     controller.async_unload()
